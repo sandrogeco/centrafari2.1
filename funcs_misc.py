@@ -20,9 +20,9 @@ def preprocess(image, cache):
     start_x = max(int(crop_center[0] - crop_w/2), 0)
     end_x = min(int(start_x + crop_w/2),2*crop_w)
 
-    start_y1 = max(int(crop_center[1] - crop_h / 2), 0)
+    start_y1 = max(int(crop_center[1] - crop_h), 0)
     end_y1 = min(int(start_y + crop_h),2*crop_h)
-    start_x1 = max(int(crop_center[0] - crop_w / 2), 0)
+    start_x1 = max(int(crop_center[0] - crop_w), 0)
     end_x1 = min(int(start_x + crop_w),2*crop_w)
 
     image = image[start_y1: end_y1, start_x1:end_x1]

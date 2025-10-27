@@ -18,7 +18,7 @@ def preprocess(image_orig, cache):
 
     # Definisci lo spostamento (in pixel)
     tx = int(width/2-crop_center[0])  # spostamento orizzontale (positiva = destra)
-    ty =int(height/2-crop_center[1])  # spostamento verticale (positiva = giù)
+    ty =int(height/2+crop_center[1])  # spostamento verticale (positiva = giù)
 
     # Crea la matrice di traslazione 2x3
     M = np.float32([[1, 0, tx],
@@ -37,7 +37,7 @@ def preprocess(image_orig, cache):
     start_y = max(int(height/2 - crop_h/2), 0)
     end_y = int(height/2 + crop_h)
     start_x = max(int(width/2 - crop_w/2), 0)
-    end_x = int(width/2 + crop_w)
+    end_x = int(width/2 + crop_w/2)
 
     image=img_translated
     image_o = image.copy() * 0

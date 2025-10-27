@@ -15,6 +15,19 @@ def preprocess(image_orig, cache):
     crop_center = config.get('crop_center', [width/2, height/2])
     crop_w = config['crop_w']
     crop_h = config['crop_h']
+
+    # Definisci lo spostamento (in pixel)
+    tx = int(width/2-crop_center[0])  # spostamento orizzontale (positiva = destra)
+    ty =int(height/2-crop_center[1])  # spostamento verticale (positiva = giù)
+
+    # Crea la matrice di traslazione 2x3
+    M = np.float32([[1, 0, tx],
+                    [0, 1, ty]])
+
+    # Applica la trasformazione
+    rows, cols = image_orig.shape[:2]
+    img_translated = cv2.warpAffine(image_orig, M, (cols, rows))
+
     start_y = max(int(crop_center[1] - crop_h/2), 0)
     end_y = int(start_y + crop_h)
     start_x = max(int(crop_center[0] - crop_w/2), 0)
@@ -25,9 +38,10 @@ def preprocess(image_orig, cache):
     start_x1 = max(int(crop_center[0] - crop_w), 0)
     end_x1 = int(crop_center[0] + crop_w)
 
-    image_o = image_orig.copy() * 0
-    image= image_orig.copy()*0
-    image[0: end_y1-start_y1,0:end_x1-start_x1] = image_orig[start_y1: end_y1,start_x1:end_x1]
+
+    image=img_translated
+    image_o = image.copy() * 0
+   # image[0: end_y1-start_y1,0:end_x1-start_x1] = image_orig[start_y1: end_y1,start_x1:end_x1]
 
     image_o[start_y : end_y, start_x : end_x] = image[start_y : end_y, start_x : end_x]
     image=cv2.convertScaleAbs(image, alpha=1.0, beta=20)

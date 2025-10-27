@@ -3,13 +3,13 @@ import cv2
 from utils import disegna_pallino, disegna_croce
 
 
-def preprocess(image, cache):
+def preprocess(image_orig, cache):
     config = cache['config']
 
     if 'crop_w' not in config or 'crop_h' not in config:
-        return image
+        return image_orig
 
-    height, width = image.shape[:2]
+    height, width = image_orig.shape[:2]
     #image=image[-cache['config']['height']:,:]
     # Ritaglia immagine
     crop_center = config.get('crop_center', [width/2, height/2])
@@ -25,8 +25,9 @@ def preprocess(image, cache):
     start_x1 = max(int(crop_center[0] - crop_w), 0)
     end_x1 = int(crop_center[0] + crop_w)
 
-    image_o = image.copy() * 0
-    image[start_y1: end_y1,start_x1:end_x1] = image[start_y1: end_y1,start_x1:end_x1]
+    image_o = image_orig.copy() * 0
+    image= image_orig.copy()*0
+    image[start_y1: end_y1,start_x1:end_x1] = image_orig[start_y1: end_y1,start_x1:end_x1]
 
     image_o[start_y : end_y, start_x : end_x] = image[start_y : end_y, start_x : end_x]
     image=cv2.convertScaleAbs(image, alpha=1.0, beta=20)

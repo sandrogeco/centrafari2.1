@@ -15,11 +15,17 @@ def preprocess(image, cache):
     crop_center = config.get('crop_center', [width/2, height/2])
     crop_w = config['crop_w']
     crop_h = config['crop_h']
-    start_y = max(int(crop_center[1] - crop_h / 2), 0)
-    end_y = min(int(start_y + crop_h),2*crop_h)
-    start_x = max(int(crop_center[0] - crop_w / 2), 0)
-    end_x = min(int(start_x + crop_w),2*crop_w)
-    image = image[start_y: end_y, start_x:end_x]
+    start_y = max(int(crop_center[1] - crop_h/2), 0)
+    end_y = min(int(start_y + crop_h/2),2*crop_h)
+    start_x = max(int(crop_center[0] - crop_w/2), 0)
+    end_x = min(int(start_x + crop_w/2),2*crop_w)
+
+    start_y1 = max(int(crop_center[1] - crop_h / 2), 0)
+    end_y1 = min(int(start_y + crop_h),2*crop_h)
+    start_x1 = max(int(crop_center[0] - crop_w / 2), 0)
+    end_x1 = min(int(start_x + crop_w),2*crop_w)
+
+    image = image[start_y1: end_y1, start_x1:end_x1]
     image_o=image.copy()*0
     image_o[start_y : end_y, start_x : end_x] = image[start_y : end_y, start_x : end_x]
     image=cv2.convertScaleAbs(image, alpha=1.0, beta=20)

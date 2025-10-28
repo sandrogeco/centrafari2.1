@@ -170,6 +170,11 @@ if __name__ == "__main__":
 
         with open(os.path.join(percorso_script, f"config_{tipo_faro}.json"), "w") as f:
             json.dump(config, f, indent=4)
+        with open(os.path.join(percorso_script, f"config_fendinebbia.json"), "r") as f:
+            config = json.load(f)
+        config["crop_center"] = (event.x, event.y)
+        with open(os.path.join(percorso_script, f"config_fendinebbia.json"), "w") as f:
+            json.dump(config, f, indent=4)
 
     root = tk.Tk()
     root.overrideredirect(True)

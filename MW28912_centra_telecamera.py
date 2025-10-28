@@ -174,7 +174,7 @@ if __name__ == "__main__":
             config = json.load(f)
         config["crop_center"] = (event.x, event.y)
         with open(os.path.join(percorso_script, f"config_fendinebbia.json"), "w") as f:
-            json.dump(config, f, indent=4)
+            json.dump(config, f, indent=4)#agg
 
     root = tk.Tk()
     root.overrideredirect(True)

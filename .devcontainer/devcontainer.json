@@ -37,7 +37,9 @@
     }
   },
 
-  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y python3-tk libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev && pip install -r requirements.txt",
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y python3-tk libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev xfce4 xfce4-terminal fluxbox dbus-x11 x11-utils tigervnc-standalone-server novnc python3-websockify && pip install -r requirements.txt",
+
+  "postStartCommand": "bash ${containerWorkspaceFolder}/start_desktop.sh",
 
   "forwardPorts": [6080, 5901],
   "portsAttributes": {

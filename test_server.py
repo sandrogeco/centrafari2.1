@@ -14,19 +14,16 @@ PORT = 8888  # Cambia con la porta del tuo config.json
 
 def create_response():
     """
-    Crea una risposta di test nel formato CFG.
+    Crea una risposta di test con formato keyword-based.
 
-    Formato: CFG->{pattern}{croce}xxx{TOV}xxxxxxxxxxxxx{inclinazione}xx{TOH}xx{qin}
+    Formato: croce:{val} inclinazione:{val} run:{val}
     """
-    pattern = '0'           # 1 char
-    croce = '1'             # 1 char
-    tov = '050'             # 3 chars
-    inclinazione = '0000'   # 4 chars
-    toh = '050'             # 3 chars
-    qin = '01.50'           # 5 chars
+    croce = '1'           # 1 char
+    inclinazione = '00000'  # 5 chars
+    run = '1'             # 1 char
 
-    # Formato fisso con padding
-    response = f"CFG->{pattern}{croce}xxx{tov}xxxxxxxxxxxxx{inclinazione}xx{toh}xx{qin}"
+    # Formato keyword-based
+    response = f"croce:{croce} inclinazione:{inclinazione} run:{run}"
     return response
 
 def main():

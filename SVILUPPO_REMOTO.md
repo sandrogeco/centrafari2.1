@@ -132,6 +132,37 @@ Questo installerà:
 
 Se hai problemi di rete durante il setup automatico, attendi qualche minuto e riesegui lo script.
 
+### 🖥️ Usare le GUI (Tkinter) in Codespaces
+
+Questo progetto include un **desktop remoto** per eseguire applicazioni GUI nel browser!
+
+#### Come accedere al desktop remoto:
+
+1. **Apri il desktop nel browser:**
+   - Vai alla tab **"PORTS"** in VS Code
+   - Cerca la porta **6080** con label "Desktop (noVNC)"
+   - Clicca sull'icona del **globo** 🌐 per aprire nel browser
+
+2. **Password VNC:** `vscode`
+
+3. **Apri un terminale nel desktop remoto** e esegui:
+   ```bash
+   cd /workspaces/centrafari
+   python3 MW28912.py
+   ```
+
+4. **La finestra tkinter apparirà nel desktop remoto!** 🎉
+
+#### Comandi utili:
+
+```bash
+# Mostra la guida desktop
+./start_gui.sh
+
+# Avvia app GUI direttamente (senza desktop visibile)
+DISPLAY=:1 python3 MW28912.py
+```
+
 ---
 
 ## ❓ Domande Frequenti

@@ -48,24 +48,7 @@ def two_lines(x: np.ndarray,
                  Y0 + mi * (x - X0))
     # Dynamic visualization of current fit line
 
-    try:
-        pippo
-        global gray, x_data, y_data
-        canvas = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-        h, w = gray.shape
-        print('x:',X0,' y:',Y0,' mo:',mo,' mi:',mi)
-        # endpoints
-        y_left = int(round(Y0 + mo * (0 - X0)))
-        y_right = int(round(Y0 + mi * (w - X0)))
-        y_o=Y0+mo*(-X0)
-        y_i=Y0+mi*(w-X0)
-        #cv2.line(canvas, (0, y_left), (w, y_right), (0, 255, 0), 1)
-        cv2.line(canvas, (0, int(round(y_o))), (int(round(X0)), int(round(Y0))), (0, 255, 255), 1)
-        cv2.line(canvas, (int(round(X0)), int(round(Y0))), (w, int(round(y_i))), (255, 0, 0), 1)
-        cv2.imshow('Fitting...', canvas)
-        cv2.waitKey(0)
-    except Exception:
-        pass
+
     return y
 
 
@@ -238,11 +221,12 @@ def fit_lines(image_input,image_output,cache,
         yaw_deg=0
         roll_deg=0
         pitch_deg=0
-        logging.error(e)
+      #  logging.error(e)
 
-
+    
 
     return image_output,(X0,Y0),(yaw_deg,pitch_deg,roll_deg)
+
     #print(f"Fit completed: X0={X0:.2f}, Y0={Y0:.2f}, mo={mo:.4f}, mi={mi:.4f}")
 
 if False:#__name__ == '__main__':

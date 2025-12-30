@@ -61,14 +61,10 @@ def show_frame(cache, lmain):
 
     # Preprocessing dell'immagine
     image_input, image_view = preprocess(image_input, cache)
-
-    if cache['CAMERA'] and cache['AUTOEXP']:
-        image_view = autoexp(image_input, image_view, cache)
-    else:
-        cache['autoexp'] = False
+    image_view = autoexp(image_input, image_view, cache)
 
     # Flip immagine se posizione sinistra
-    if cache['pos'] == 'sx':
+    if cache.get('pos','dx') == 'sx':
         image_input = cv2.flip(image_input, 1)
         image_view = cv2.flip(image_view, 1)
 
@@ -119,11 +115,11 @@ def show_frame(cache, lmain):
         )
 
     # Flip finale se posizione sinistra
-    if cache['pos'] == 'sx':
+    if cache.get('pos','dx') == 'sx':
         point = (cache['config']['width'] - point[0], point[1])
         image_output = cv2.flip(image_output, 1)
 
-    logging.debug(f"pos {cache['pos']}")
+
 
     # Visualizza croce di riferimento
     if stato_comunicazione.get('croce', 0) == 1:
@@ -253,18 +249,19 @@ if __name__ == "__main__":
         "CAMERA": config.get("CAMERA") or False,
         "COMM": config.get("COMM") or False,
         "AUTOEXP": config.get("AUTOEXP") or False,
+        'tipo_faro':'anabbagliante',
         "config": config,
         "stato_comunicazione": {},
         "queue": Queue()
     }
 
-    # Avvia thread di comunicazione (DISABILITATO)
-    # if cache['COMM']:
-    #     threading.Thread(
-    #         target=partial(thread_comunicazione, config['port'], cache),
-    #         daemon=True,
-    #         name="com_in"
-    #     ).start()
+    #Avvia thread di comunicazione 
+    if cache['COMM']:
+        threading.Thread(
+            target=partial(thread_comunicazione, config['port'], cache),
+            daemon=True,
+            name="com_in"
+        ).start()
 
     # Inizializza e avvia GUI
     if True:

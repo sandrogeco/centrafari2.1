@@ -3,7 +3,7 @@
 
 echo "🔧 Installazione dipendenze di sistema..."
 sudo apt-get update
-sudo apt-get install -y python3-tk
+sudo apt-get install -y python3-tk libgl1 libglib2.0-0 libsm6 libxext6 libxrender-dev
 
 echo "📦 Installazione dipendenze Python..."
 pip install -r requirements.txt

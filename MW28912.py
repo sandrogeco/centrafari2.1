@@ -258,17 +258,16 @@ if __name__ == "__main__":
         "queue": Queue()
     }
 
-    # Avvia thread di comunicazione
-    if cache['COMM']:
-        threading.Thread(
-            target=partial(thread_comunicazione, config['port'], cache),
-            daemon=True,
-            name="com_in"
-        ).start()
+    # Avvia thread di comunicazione (DISABILITATO)
+    # if cache['COMM']:
+    #     threading.Thread(
+    #         target=partial(thread_comunicazione, config['port'], cache),
+    #         daemon=True,
+    #         name="com_in"
+    #     ).start()
 
-    # TODO: Verificare se questa sezione deve essere attiva
-    # Attualmente disabilitata con if False
-    if False:
+    # Inizializza e avvia GUI
+    if True:
         if cache['CAMERA']:
             indice_camera = 0
             cache['config']['indice_camera'] = indice_camera

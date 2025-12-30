@@ -118,11 +118,19 @@ All'avvio di Codespaces, vengono installate automaticamente:
 - numpy
 - Pillow
 
-### Tkinter
-Tkinter è già incluso nelle immagini Docker di Codespaces. Se hai problemi, apri un terminale e installa:
+### Setup Iniziale in Codespaces
+
+**Importante:** Alla prima apertura del Codespace, esegui:
+
 ```bash
-sudo apt-get update && sudo apt-get install -y python3-tk
+./setup_codespaces.sh
 ```
+
+Questo installerà:
+- `python3-tk` (necessario per la GUI)
+- Tutte le dipendenze Python da `requirements.txt`
+
+Se hai problemi di rete durante il setup automatico, attendi qualche minuto e riesegui lo script.
 
 ---
 

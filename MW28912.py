@@ -48,6 +48,19 @@ def show_frame(cache, lmain):
         cache: Dizionario con configurazione e stato dell'applicazione
         lmain: Widget Label di tkinter per visualizzare l'immagine
     """
+    # Gestione visibilità finestra basata su comando 'run'
+    root = lmain.master
+    stato_comunicazione = cache.get('stato_comunicazione', {})
+    should_show = stato_comunicazione.get('run', '1') == '1'
+
+    current_state = root.state()
+    if should_show and current_state == 'withdrawn':
+        root.deiconify()
+        logging.info("Finestra mostrata")
+    elif not should_show and current_state != 'withdrawn':
+        root.withdraw()
+        logging.info("Finestra nascosta")
+
     if cache['DEBUG']:
         t0 = time.monotonic()
 

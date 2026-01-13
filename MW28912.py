@@ -30,7 +30,8 @@ from funcs_misc import (
     visualizza_croce_riferimento,
     blur_and_sharpen,
     sharpen_dog,
-    sharpen_bandlimited
+    sharpen_bandlimited,
+    is_punto_ok
 )
 from funcs_anabbagliante import rileva_punto_angoloso, rileva_punto_angoloso1
 from funcs_luminosita import calcola_lux
@@ -200,13 +201,20 @@ def show_frame(cache, lmain):
     # 7. AGGIORNAMENTO DATI IN CODA
     # ====================
     if point:
+        # Calcola indicatori direzionali
+        ptok_result = is_punto_ok(point, cache)
+
         data = {
             'posiz_pattern_x': point[0],
             'posiz_pattern_y': point[1],
             'lux': lux,
             'yaw': angles[0],
             'pitch': angles[1],
-            'roll': angles[2]
+            'roll': angles[2],
+            'left': ptok_result['left'],
+            'right': ptok_result['right'],
+            'up': ptok_result['up'],
+            'down': ptok_result['down']
         }
     else:
         data = {
@@ -215,7 +223,11 @@ def show_frame(cache, lmain):
             'lux': lux,
             'yaw': 0,
             'pitch': 0,
-            'roll': 0
+            'roll': 0,
+            'left': 0,
+            'right': 0,
+            'up': 0,
+            'down': 0
         }
 
     cache['queue'].put(data)

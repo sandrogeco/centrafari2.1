@@ -24,7 +24,7 @@ import PIL
 from PIL import ImageTk
 
 # Local imports
-import fit_lines
+import fari_detection
 from funcs_misc import (
     preprocess,
     visualizza_croce_riferimento,
@@ -33,7 +33,6 @@ from funcs_misc import (
     sharpen_bandlimited
 )
 from funcs_anabbagliante import rileva_punto_angoloso, rileva_punto_angoloso1
-from funcs_abbagliante import trova_contorni_abbagliante
 from funcs_luminosita import calcola_lux
 from camera import set_camera, apri_camera, autoexp
 from comms import thread_comunicazione
@@ -117,15 +116,15 @@ def show_frame(cache, lmain):
 
     # Esegui detection (solo calcolo, no disegno)
     if tipo_faro == 'anabbagliante':
-        results = fit_lines.fit_lines_anabbagliante(
+        results = fari_detection.detect_anabbagliante(
             image_input, cache, 5, 40, 120, 1e-8, 1e-8, 1000
         )
     elif tipo_faro == 'fendinebbia':
-        results = fit_lines.fit_lines_fendinebbia(
+        results = fari_detection.detect_fendinebbia(
             image_input, cache, 5, 40, 120, 1e-8, 1e-8, 1000
         )
     elif tipo_faro == 'abbagliante':
-        results = trova_contorni_abbagliante(
+        results = fari_detection.detect_abbagliante(
             image_input, cache
         )
     else:
@@ -133,7 +132,7 @@ def show_frame(cache, lmain):
         results = {'punto': None, 'angoli': (0, 0, 0), 'linee': [], 'contorni': []}
 
     # Disegna i risultati
-    image_output = fit_lines.draw_detection_results(image_view, results, cache)
+    image_output = fari_detection.draw_results(image_view, results, cache)
 
     # Estrai punto e angoli dai risultati
     point = results['punto']

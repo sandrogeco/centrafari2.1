@@ -483,7 +483,15 @@ def draw_results(image_output: np.ndarray,
     Returns:
         Immagine con risultati disegnati
     """
-    # Disegna contorni
+    # Determina colore PRIMA in base a is_punto_ok (verde se dentro croce, rosso se fuori)
+    punto = results.get('punto')
+    if punto is not None:
+        ptok = is_punto_ok(punto, cache)
+        color = (0, 255, 0) if ptok else (255, 0, 0)
+    else:
+        color = (128, 128, 128)  # Grigio se nessun punto rilevato
+
+    # Disegna contorni (sempre rossi)
     if results.get('contorni'):
         try:
             largest = max(results['contorni'], key=cv2.contourArea)
@@ -491,18 +499,14 @@ def draw_results(image_output: np.ndarray,
         except:
             pass
 
-    # Disegna linee
+    # Disegna linee (usano il colore del punto: verde o rosso)
     for linea in results.get('linee', []):
         if len(linea) == 4:
             x1, y1, x2, y2 = linea
-            cv2.line(image_output, (x1, y1), (x2, y2), (0, 255, 255), 1, lineType=cv2.LINE_AA)
+            cv2.line(image_output, (x1, y1), (x2, y2), color, 1, lineType=cv2.LINE_AA)
 
-    # Disegna punto centrale (con colore rosso/verde)
-    punto = results.get('punto')
+    # Disegna punto centrale (con colore già determinato)
     if punto is not None:
-        ptok = is_punto_ok(punto, cache)
-        color = (0, 255, 0) if ptok else (255, 0, 0)
-
         # Abbagliante ha pallino più grande
         radius = 6 if results.get('tipo') == 'abbagliante' else 2
         cv2.circle(image_output, (int(round(punto[0])), int(round(punto[1]))),

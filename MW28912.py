@@ -116,12 +116,12 @@ def show_frame(cache, lmain):
     tipo_faro = stato_comunicazione.get('tipo_faro', 'anabbagliante').strip()
 
     if tipo_faro == 'anabbagliante':
-        image_output, point, angles = fit_lines.fit_lines(
+        image_output, point, angles = fit_lines.fit_lines_anabbagliante(
             image_input, image_view, cache, 5, 40, 120, 1e-8, 1e-8, 1000
         )
     elif tipo_faro == 'fendinebbia':
-        image_output, point, angles = fit_lines.fit_lines(
-            image_input, image_view, cache, 5, 40, 120, 1e-8, 1e-8, 1000, False, True
+        image_output, point, angles = fit_lines.fit_lines_fendinebbia(
+            image_input, image_view, cache, 5, 40, 120, 1e-8, 1e-8, 1000
         )
     elif tipo_faro == 'abbagliante':
         image_output, point, angles = trova_contorni_abbagliante(

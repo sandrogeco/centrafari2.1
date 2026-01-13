@@ -204,6 +204,10 @@ def show_frame(cache, lmain):
         # Calcola indicatori direzionali
         ptok_result = is_punto_ok(point, cache)
 
+        # Debug: verifica inclinazione
+        incl_value = cache['stato_comunicazione'].get('inclinazione', 'NOT_SET')
+        logging.debug(f"Inclinazione da comunicazione: '{incl_value}'")
+
         data = {
             'posiz_pattern_x': point[0],
             'posiz_pattern_y': point[1],

@@ -93,16 +93,16 @@ def is_punto_ok(point, cache):
 
     # Calcola indicazioni direzionali con 3 livelli
     # Orizzontale (left/right)
-    if dx <= -toh:
+    if dx < -toh:
         # Fuori a sinistra
-        if dx <= -2*toh:
+        if dx < -2*toh:
             left = 2  # Molto fuori
         else:
             left = 1  # Poco fuori
         right = 0
-    elif dx >= toh:
+    elif dx > toh:
         # Fuori a destra
-        if dx >= 2*toh:
+        if dx > 2*toh:
             right = 2  # Molto fuori
         else:
             right = 1  # Poco fuori
@@ -113,16 +113,16 @@ def is_punto_ok(point, cache):
         right = 0
 
     # Verticale (up/down)
-    if dy <= -tov:
+    if dy < -tov:
         # Fuori sopra
-        if dy <= -2*tov:
+        if dy < -2*tov:
             up = 2  # Molto fuori
         else:
             up = 1  # Poco fuori
         down = 0
-    elif dy >= tov:
+    elif dy > tov:
         # Fuori sotto
-        if dy >= 2*tov:
+        if dy > 2*tov:
             down = 2  # Molto fuori
         else:
             down = 1  # Poco fuori

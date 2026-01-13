@@ -3,19 +3,21 @@ Modulo per il rilevamento del centro massimo del faro abbagliante.
 
 Questo modulo implementa l'algoritmo di rilevamento del punto centrale
 del pattern luminoso del faro abbagliante tramite calcolo del centro di massa.
+
+Separazione tra detection e rendering:
+- La funzione trova_contorni_abbagliante() ritorna solo i dati rilevati
+- La funzione draw_detection_results() di fit_lines.py gestisce il rendering
 """
 
 import numpy as np
 import cv2
 import logging
 from typing import Tuple, Optional
-from utils import get_colore, disegna_pallino
-from funcs_misc import is_punto_ok
+from utils import get_colore
 
 
 def trova_contorni_abbagliante(image_input: np.ndarray,
-                                image_output: np.ndarray,
-                                cache: dict) -> Tuple[np.ndarray, Optional[Tuple[int, int]], Tuple[float, float, float]]:
+                                cache: dict) -> dict:
     """
     Rileva il centro del pattern luminoso del faro abbagliante tramite centro di massa.
 
@@ -26,12 +28,17 @@ def trova_contorni_abbagliante(image_input: np.ndarray,
 
     Args:
         image_input: Immagine di input in scala di grigi
-        image_output: Immagine su cui disegnare i risultati
         cache: Dizionario con cache e configurazione
 
     Returns:
-        Tuple con (image_output, punto_centrale, angoli_yaw_pitch_roll)
-        punto_centrale può essere None se non trovato
+        Dizionario con:
+        - 'tipo': 'abbagliante'
+        - 'punto': (x_cms, y_cms) o None
+        - 'linee': [] - abbagliante non ha linee
+        - 'contorni': lista di contorni da cv2.findContours
+        - 'punti_fitted': [] - abbagliante non ha punti fitted
+        - 'angoli': (yaw, pitch, roll)
+        - 'debug_info': dict con info debug (clipping, threshold, etc.)
     """
     AREA = image_input.shape[0] * image_input.shape[1]
     LEVEL = 0.97  # Percentile per soglia automatica (non usato, hardcoded a 210)
@@ -50,12 +57,6 @@ def trova_contorni_abbagliante(image_input: np.ndarray,
     threshold_level = 210
     image_tmp[image_tmp < threshold_level] = 0
 
-    # Mostra info debug se richiesto
-    if cache["DEBUG"]:
-        msg = f"clipping: {nclip}%, Max level: {np.max(image_input)}, threshold: {threshold_level}"
-        cv2.putText(image_output, msg, (5, 20),
-                   cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, get_colore('green'), 1)
-
     # ============================
     # CALCOLO CENTRO DI MASSA
     # ============================
@@ -65,30 +66,34 @@ def trova_contorni_abbagliante(image_input: np.ndarray,
     # Evita divisione per zero
     if moments['m00'] == 0:
         logging.error("punto abbagliante non trovato - m00=0")
-        return image_output, None, (0, 0, 0)
+        return {
+            'tipo': 'abbagliante',
+            'punto': None,
+            'linee': [],
+            'contorni': [],
+            'punti_fitted': [],
+            'angoli': (0, 0, 0),
+            'debug_info': {
+                'clipping': nclip,
+                'max_level': np.max(image_input),
+                'threshold': threshold_level
+            }
+        }
 
     x_cms = int(moments['m10'] / moments['m00'])
     y_cms = int(moments['m01'] / moments['m00'])
 
     # ============================
-    # DISEGNO CONTORNI
+    # ESTRAZIONE CONTORNI
     # ============================
 
+    contorni = []
     try:
         contours, _ = cv2.findContours(image_tmp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contour = max(contours, key=cv2.contourArea)
-        cv2.drawContours(image_output, [contour], -1, get_colore('blue'), 1, cv2.LINE_AA)
+        if contours:
+            contorni = contours
     except Exception as e:
-        logging.error(f"trova_contorni_abbagliante - errore drawContours: {e}")
-
-    # ============================
-    # DISEGNO PUNTO CENTRALE
-    # ============================
-
-    # Verifica se il punto è nel range valido
-    ptok = is_punto_ok((x_cms, y_cms), cache)
-    color = 'green' if ptok else 'red'
-    disegna_pallino(image_output, (x_cms, y_cms), 6, color, -1)
+        logging.error(f"trova_contorni_abbagliante - errore findContours: {e}")
 
     # ============================
     # CALCOLO ANGOLI
@@ -105,4 +110,16 @@ def trova_contorni_abbagliante(image_input: np.ndarray,
         pitch_deg = 0
         roll_deg = 0
 
-    return image_output, (x_cms, y_cms), (yaw_deg, pitch_deg, roll_deg)
+    return {
+        'tipo': 'abbagliante',
+        'punto': (x_cms, y_cms),
+        'linee': [],
+        'contorni': contorni,
+        'punti_fitted': [],
+        'angoli': (yaw_deg, pitch_deg, roll_deg),
+        'debug_info': {
+            'clipping': nclip,
+            'max_level': np.max(image_input),
+            'threshold': threshold_level
+        }
+    }

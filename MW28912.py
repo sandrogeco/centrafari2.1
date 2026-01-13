@@ -115,22 +115,29 @@ def show_frame(cache, lmain):
     # ====================
     tipo_faro = stato_comunicazione.get('tipo_faro', 'anabbagliante').strip()
 
+    # Esegui detection (solo calcolo, no disegno)
     if tipo_faro == 'anabbagliante':
-        image_output, point, angles = fit_lines.fit_lines_anabbagliante(
-            image_input, image_view, cache, 5, 40, 120, 1e-8, 1e-8, 1000
+        results = fit_lines.fit_lines_anabbagliante(
+            image_input, cache, 5, 40, 120, 1e-8, 1e-8, 1000
         )
     elif tipo_faro == 'fendinebbia':
-        image_output, point, angles = fit_lines.fit_lines_fendinebbia(
-            image_input, image_view, cache, 5, 40, 120, 1e-8, 1e-8, 1000
+        results = fit_lines.fit_lines_fendinebbia(
+            image_input, cache, 5, 40, 120, 1e-8, 1e-8, 1000
         )
     elif tipo_faro == 'abbagliante':
-        image_output, point, angles = trova_contorni_abbagliante(
-            image_input, image_view, cache
+        results = trova_contorni_abbagliante(
+            image_input, cache
         )
     else:
         logging.warning(f"Tipo faro sconosciuto: {tipo_faro}")
-        point, angles = None, (0, 0, 0)
-        image_output = image_view.copy()
+        results = {'punto': None, 'angoli': (0, 0, 0), 'linee': [], 'contorni': []}
+
+    # Disegna i risultati
+    image_output = fit_lines.draw_detection_results(image_view, results, cache)
+
+    # Estrai punto e angoli dai risultati
+    point = results['punto']
+    angles = results['angoli']
 
     # ====================
     # 5. CALCOLO LUMINOSITÀ

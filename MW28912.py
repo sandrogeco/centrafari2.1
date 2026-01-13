@@ -236,8 +236,9 @@ def show_frame(cache, lmain):
         )
         cache['t0'] = t0
 
-    # Converti e visualizza immagine finale
-    img = PIL.Image.fromarray(image_output)
+    # Converti BGR (OpenCV) → RGB (PIL/tkinter) e visualizza immagine finale
+    image_rgb = cv2.cvtColor(image_output, cv2.COLOR_BGR2RGB)
+    img = PIL.Image.fromarray(image_rgb)
     imgtk = ImageTk.PhotoImage(image=img)
     lmain.imgtk = imgtk
     lmain.configure(image=imgtk)

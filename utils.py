@@ -40,7 +40,7 @@ def controlla_colore_pixel(pixel, colore):
 
 
 def disegna_pallino(frame, punto, raggio, colore, spessore):
-    cv2.circle(frame, punto, raggio, get_colore(colore), spessore)
+    cv2.circle(frame, punto, raggio, get_colore(colore), spessore, cv2.LINE_AA)
 
 
 def disegna_segmento(frame, punto1, punto2, spessore, colore):
@@ -50,6 +50,7 @@ def disegna_segmento(frame, punto1, punto2, spessore, colore):
         (int(punto2[0]), int(punto2[1])),
         get_colore(colore),
         spessore,
+        cv2.LINE_AA
     )
 
 

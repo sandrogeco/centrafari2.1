@@ -189,8 +189,8 @@ def show_frame(cache, lmain):
             )
         else:
             # Croce standard per anabbagliante/abbagliante
-            tov = config.get('TOV', 50)
-            toh = config.get('TOH', 50)
+            toh = int(stato_comunicazione.get('TOH', config.get('TOH', 50)))
+            tov = int(stato_comunicazione.get('TOV', config.get('TOV', 50)))
             visualizza_croce_riferimento(
                 image_output, center_x, center_y + inclinazione,
                 2 * tov, 2 * toh

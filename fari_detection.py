@@ -536,8 +536,7 @@ def draw_results(image_output: np.ndarray,
 
     # Disegna punto centrale (con colore già determinato)
     if punto is not None:
-        # Pallino ben visibile per tutti i tipi
-        radius = 8 if results.get('tipo') == 'abbagliante' else 6
+        radius = 6
         cv2.circle(image_output, (int(round(punto[0])), int(round(punto[1]))),
                   radius, color, -1, lineType=cv2.LINE_AA)
 

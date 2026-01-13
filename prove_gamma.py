@@ -34,7 +34,7 @@ popt, _ = curve_fit(
     exp,
     valori,
   #  p0=[2,30],
-    bounds=([ 0, 0], [ np.Inf, 1e-1])  # gamma 0.5–5, l tra 0.0001 e 1
+    bounds=([ 0, 0], [ np.inf, 1e-1])  # gamma 0.5–5, l tra 0.0001 e 1
 )
 
 g, l = popt

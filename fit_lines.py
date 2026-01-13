@@ -98,7 +98,7 @@ def fit_lines(image_input,image_output,cache,
             marginl=0
             marginl1=0
             cache['margin_auto']=0
-            cache['s_err']=np.Inf
+            cache['s_err']=np.inf
             cache['X0']=300
             cache['Y0']=0
             cache['r_bound']=x_max
@@ -106,7 +106,7 @@ def fit_lines(image_input,image_output,cache,
         if cache['autoexp_ok']:
             #marginl=0
             cache['margin_auto']=0
-            cache['s_err']=np.Inf
+            cache['s_err']=np.inf
             cache['r_bound'] = x_max
         marginl=10
         left_bound = x_min + marginl
@@ -140,8 +140,8 @@ def fit_lines(image_input,image_output,cache,
             p0 = [np.mean(x_data), np.max(y_data) - 1, -0.01]
            # xm=(np.max(x_data)+np.min(x_data))/2
             bounds = (
-                [np.min(x_data), 0.0, -np.Inf],
-                [np.max(x_data), np.max(y_data),np.Inf]
+                [np.min(x_data), 0.0, -np.inf],
+                [np.max(x_data), np.max(y_data),np.inf]
             )
             try:
                 popt, _ = curve_fit(
@@ -159,7 +159,7 @@ def fit_lines(image_input,image_output,cache,
         else:
             p0 = [np.mean(x_data), np.max(y_data) - 1, -0.01, -1.0]
             bounds = (
-                [np.min(x_data), 0.0, -0.5, -np.Inf],
+                [np.min(x_data), 0.0, -0.5, -np.inf],
                 [np.max(x_data), np.max(y_data), 0, 0]
             )
             try:

@@ -501,11 +501,30 @@ def draw_results(image_output: np.ndarray,
     else:
         color = (128, 128, 128)      # Grigio se nessun punto rilevato
 
-    # Disegna contorni (sempre rossi)
+    # Disegna contorni
     if results.get('contorni'):
         try:
             largest = max(results['contorni'], key=cv2.contourArea)
-            cv2.drawContours(image_output, [largest], -1, (0, 0, 255), 1, lineType=cv2.LINE_AA)
+
+            # Disegna contorno completo in grigio
+            cv2.drawContours(image_output, [largest], -1, (100, 100, 100), 1, lineType=cv2.LINE_AA)
+
+            # Trova parte superiore del contorno (cut-off) e ridisegnala con colore dinamico
+            contour_points = largest.reshape(-1, 2)
+            y_min = contour_points[:, 1].min()
+
+            # Tolleranza: considera "parte superiore" i punti entro 15 pixel dalla Y minima
+            cutoff_tolerance = 15
+            upper_points = contour_points[contour_points[:, 1] <= y_min + cutoff_tolerance]
+
+            # Disegna parte superiore con colore dinamico (verde/giallo/rosso)
+            if len(upper_points) > 1:
+                # Ordina punti per X per disegnarli come linea continua
+                upper_points = upper_points[upper_points[:, 0].argsort()]
+                for i in range(len(upper_points) - 1):
+                    pt1 = tuple(upper_points[i])
+                    pt2 = tuple(upper_points[i + 1])
+                    cv2.line(image_output, pt1, pt2, color, 2, lineType=cv2.LINE_AA)
         except:
             pass
 

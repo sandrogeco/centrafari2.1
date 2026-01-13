@@ -75,10 +75,11 @@ def is_punto_ok(point, cache):
     width = config["width"]
     height = config["height"]
 
-    # Prendi TOV e TOH da config (non più da comunicazione)
-    toh = config.get('TOH', 50)
-    tov = config.get('TOV', 50)
-    inclinazione = stato_comunicazione.get('inclinazione', 0)
+    # Prendi TOV e TOH: prima da comunicazione, poi da config
+    # Comunicazione ha priorità per permettere aggiustamenti real-time
+    toh = int(stato_comunicazione.get('TOH', config.get('TOH', 50)))
+    tov = int(stato_comunicazione.get('TOV', config.get('TOV', 50)))
+    inclinazione = int(stato_comunicazione.get('inclinazione', 0))
 
     # Centro della croce
     center_x = width / 2

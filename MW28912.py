@@ -162,7 +162,7 @@ def show_frame(cache, lmain):
     if stato_comunicazione.get('croce', '0') == '1':
         center_x = int(config['width'] / 2)
         center_y = int(config['height'] / 2)
-        inclinazione = stato_comunicazione.get('inclinazione', 0)
+        inclinazione = int(stato_comunicazione.get('inclinazione', '0'))
 
         if tipo_faro == 'fendinebbia':
             # Linee orizzontali per fendinebbia

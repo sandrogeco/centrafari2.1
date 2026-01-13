@@ -14,17 +14,25 @@ def decode_cmd(resp):
 
     return stato_comunicazione
 
-def decode_cmd1(resp,commands):
-    def find_cmd(cmd,length):
-        start=resp.find(cmd)
-        end=start+len(cmd)
-        if start>=0:
-          commands[cmd]=resp[end+1:end+length+1]
+def decode_cmd1(resp, commands):
+    """
+    Decodifica comandi con formato: parametro valore; parametro2 valore2;
+    Esempio: croce 1; run 0; tipo_faro anabbagliante; inclinazione 00000;
+    """
+    # Splitta per punto e virgola per ottenere ogni comando
+    parts = resp.split(';')
 
-    find_cmd('croce',1)
-    find_cmd('inclinazione',5)
-    find_cmd('run',1)
-    find_cmd('tipo_faro',15)
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+
+        # Splitta per spazio: primo elemento è parametro, resto è valore
+        tokens = part.split(' ', 1)
+        if len(tokens) == 2:
+            parametro = tokens[0].strip()
+            valore = tokens[1].strip()
+            commands[parametro] = valore
 
 def thread_comunicazione(port, cache):
     first_run = True

@@ -93,21 +93,23 @@ def is_punto_ok(point, cache):
     is_inside = abs(dx) <= toh and abs(dy) <= tov
 
     # Calcola indicazioni direzionali con 3 livelli
+    # Gli indicatori dicono "dove spostare il faro" per centrare
+
     # Orizzontale (left/right)
     if dx < -toh:
-        # Fuori a sinistra
+        # Punto a sinistra → spostare faro a DESTRA
         if dx < -2*toh:
-            left = 2  # Molto fuori
+            right = 2  # Molto fuori, spostare molto a destra
         else:
-            left = 1  # Poco fuori
-        right = 0
-    elif dx > toh:
-        # Fuori a destra
-        if dx > 2*toh:
-            right = 2  # Molto fuori
-        else:
-            right = 1  # Poco fuori
+            right = 1  # Poco fuori, spostare poco a destra
         left = 0
+    elif dx > toh:
+        # Punto a destra → spostare faro a SINISTRA
+        if dx > 2*toh:
+            left = 2  # Molto fuori, spostare molto a sinistra
+        else:
+            left = 1  # Poco fuori, spostare poco a sinistra
+        right = 0
     else:
         # Dentro orizzontalmente
         left = 0
@@ -115,19 +117,19 @@ def is_punto_ok(point, cache):
 
     # Verticale (up/down)
     if dy < -tov:
-        # Fuori sopra
+        # Punto in alto → spostare faro in BASSO (GIÙ)
         if dy < -2*tov:
-            up = 2  # Molto fuori
+            down = 2  # Molto fuori, spostare molto giù
         else:
-            up = 1  # Poco fuori
-        down = 0
-    elif dy > tov:
-        # Fuori sotto
-        if dy > 2*tov:
-            down = 2  # Molto fuori
-        else:
-            down = 1  # Poco fuori
+            down = 1  # Poco fuori, spostare poco giù
         up = 0
+    elif dy > tov:
+        # Punto in basso → spostare faro in ALTO (SU)
+        if dy > 2*tov:
+            up = 2  # Molto fuori, spostare molto su
+        else:
+            up = 1  # Poco fuori, spostare poco su
+        down = 0
     else:
         # Dentro verticalmente
         up = 0

@@ -54,18 +54,101 @@ def preprocess(image_orig, cache):
 
 
 def is_punto_ok(point, cache):
+    """
+    Verifica se il punto è dentro la croce di riferimento e fornisce indicazioni direzionali.
+
+    Args:
+        point: Tuple (x, y) con coordinate del punto
+        cache: Dizionario con config e stato_comunicazione
+
+    Returns:
+        Dict con:
+        - 'ok': bool - True se punto dentro la croce
+        - 'left': int - 0=ok, 1=poco fuori sx (entro 2×TOH), 2=molto fuori sx
+        - 'right': int - 0=ok, 1=poco fuori dx (entro 2×TOH), 2=molto fuori dx
+        - 'up': int - 0=ok, 1=poco fuori su (entro 2×TOV), 2=molto fuori su
+        - 'down': int - 0=ok, 1=poco fuori giù (entro 2×TOV), 2=molto fuori giù
+        - 'status': str - 'ok', 'warning' (poco fuori), 'error' (molto fuori)
+    """
     stato_comunicazione = cache['stato_comunicazione']
-    width = cache["config"]["width"]
-    height = cache["config"]["height"]
-    toh = stato_comunicazione.get('TOH', 50)
-    tov = stato_comunicazione.get('TOV', 50)
+    config = cache["config"]
+    width = config["width"]
+    height = config["height"]
+
+    # Prendi TOV e TOH da config (non più da comunicazione)
+    toh = config.get('TOH', 50)
+    tov = config.get('TOV', 50)
     inclinazione = stato_comunicazione.get('inclinazione', 0)
 
-    is_punto_centrato = (width / 2 - toh) <= point[0] <= (width / 2 + toh) \
-        and (height / 2 - tov + inclinazione) <= point[1] <= (height / 2 + tov + inclinazione)
+    # Centro della croce
+    center_x = width / 2
+    center_y = height / 2 + inclinazione
 
-    return is_punto_centrato
-    #disegna_pallino(image_output, point, 10, 'green' if is_punto_centrato else 'red', 1)
+    # Distanze dal centro
+    dx = point[0] - center_x
+    dy = point[1] - center_y
+
+    # Verifica se dentro la croce
+    is_inside = abs(dx) <= toh and abs(dy) <= tov
+
+    # Calcola indicazioni direzionali con 3 livelli
+    # Orizzontale (left/right)
+    if dx <= -toh:
+        # Fuori a sinistra
+        if dx <= -2*toh:
+            left = 2  # Molto fuori
+        else:
+            left = 1  # Poco fuori
+        right = 0
+    elif dx >= toh:
+        # Fuori a destra
+        if dx >= 2*toh:
+            right = 2  # Molto fuori
+        else:
+            right = 1  # Poco fuori
+        left = 0
+    else:
+        # Dentro orizzontalmente
+        left = 0
+        right = 0
+
+    # Verticale (up/down)
+    if dy <= -tov:
+        # Fuori sopra
+        if dy <= -2*tov:
+            up = 2  # Molto fuori
+        else:
+            up = 1  # Poco fuori
+        down = 0
+    elif dy >= tov:
+        # Fuori sotto
+        if dy >= 2*tov:
+            down = 2  # Molto fuori
+        else:
+            down = 1  # Poco fuori
+        up = 0
+    else:
+        # Dentro verticalmente
+        up = 0
+        down = 0
+
+    # Determina status generale
+    max_level = max(left, right, up, down)
+    if max_level == 0:
+        status = 'ok'
+    elif max_level == 1:
+        status = 'warning'
+    else:
+        status = 'error'
+
+    return {
+        'ok': is_inside,
+        'left': left,
+        'right': right,
+        'up': up,
+        'down': down,
+        'status': status
+    }
 
 
 def visualizza_croce_riferimento(frame, x, y, width, heigth):

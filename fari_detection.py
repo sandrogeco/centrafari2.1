@@ -473,7 +473,10 @@ def draw_results(image_output: np.ndarray,
     Disegna i risultati del rilevamento sull'immagine.
 
     Funzione unificata per tutti i tipi di faro (anabbagliante, fendinebbia, abbagliante).
-    Gestisce automaticamente il colore rosso/verde in base a is_punto_ok().
+    Gestisce automaticamente 3 livelli di colore in base a is_punto_ok():
+    - Verde: punto dentro la croce (ok)
+    - Giallo: punto poco fuori (entro 2×TOH/TOV - warning)
+    - Rosso: punto molto fuori (oltre 2×TOH/TOV - error)
 
     Args:
         image_output: Immagine su cui disegnare
@@ -483,13 +486,20 @@ def draw_results(image_output: np.ndarray,
     Returns:
         Immagine con risultati disegnati
     """
-    # Determina colore PRIMA in base a is_punto_ok (verde se dentro croce, rosso se fuori)
+    # Determina colore PRIMA in base a is_punto_ok con 3 livelli
     punto = results.get('punto')
     if punto is not None:
-        ptok = is_punto_ok(punto, cache)
-        color = (0, 255, 0) if ptok else (255, 0, 0)
+        ptok_result = is_punto_ok(punto, cache)
+        status = ptok_result['status']
+
+        if status == 'ok':
+            color = (0, 255, 0)      # Verde - dentro la croce
+        elif status == 'warning':
+            color = (0, 255, 255)    # Giallo - poco fuori (entro 2×TOH/TOV)
+        else:  # status == 'error'
+            color = (0, 0, 255)      # Rosso - molto fuori (oltre 2×TOH/TOV)
     else:
-        color = (128, 128, 128)  # Grigio se nessun punto rilevato
+        color = (128, 128, 128)      # Grigio se nessun punto rilevato
 
     # Disegna contorni (sempre rossi)
     if results.get('contorni'):

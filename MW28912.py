@@ -44,11 +44,21 @@ def show_frame(cache, lmain):
     """
     Elabora e visualizza un frame dell'immagine del faro.
 
+    Ciclo principale di elaborazione che:
+    1. Gestisce la visibilità della finestra
+    2. Carica e preprocessa l'immagine
+    3. Rileva il pattern del faro
+    4. Calcola luminosità e posizione
+    5. Visualizza croce di riferimento
+    6. Aggiorna i dati in coda per la comunicazione
+
     Args:
         cache: Dizionario con configurazione e stato dell'applicazione
         lmain: Widget Label di tkinter per visualizzare l'immagine
     """
-    # Gestione visibilità finestra basata su comando 'run'
+    # ====================
+    # 1. GESTIONE VISIBILITÀ FINESTRA
+    # ====================
     root = lmain.master
     stato_comunicazione = cache.get('stato_comunicazione', {})
     should_show = stato_comunicazione.get('run', '1') == '1'
@@ -61,133 +71,155 @@ def show_frame(cache, lmain):
         root.withdraw()
         logging.info("Finestra nascosta")
 
+    # Timer debug
     if cache['DEBUG']:
         t0 = time.monotonic()
 
+    # ====================
+    # 2. CARICAMENTO FRAME
+    # ====================
     image_input = cv2.imread("/mnt/temp/frame.jpg")
 
     if image_input is None:
         lmain.after(10, lambda: show_frame(cache, lmain))
         return
 
-    stato_comunicazione = cache['stato_comunicazione']
-
-    # Preprocessing dell'immagine
+    # ====================
+    # 3. PREPROCESSING IMMAGINE
+    # ====================
+    # Preprocessing base e auto-esposizione
     image_input, image_view = preprocess(image_input, cache)
     image_view = autoexp(image_input, image_view, cache)
 
     # Flip immagine se posizione sinistra
-    if cache.get('pos','dx') == 'sx':
+    is_left_position = cache.get('pos', 'dx') == 'sx'
+    if is_left_position:
         image_input = cv2.flip(image_input, 1)
         image_view = cv2.flip(image_view, 1)
 
-    # Conversione pattern in base alla configurazione
+    # Conversione pattern (0,1 = grayscale, 2 = colormap JET)
     pattern = stato_comunicazione.get('pattern', 0)
+    logging.debug(f"[PT] {pattern}")
 
-    if pattern == 0:
-        image_input = cv2.cvtColor(image_input, cv2.COLOR_BGR2GRAY)
-    elif pattern == 1:
+    if pattern in [0, 1]:
         image_input = cv2.cvtColor(image_input, cv2.COLOR_BGR2GRAY)
     elif pattern == 2:
         image_view = cv2.applyColorMap(255 - image_view.copy(), cv2.COLORMAP_JET)
         image_input = cv2.cvtColor(image_input, cv2.COLOR_BGR2GRAY)
 
-    dim = image_view.shape
+    # ====================
+    # 4. ELABORAZIONE TIPO FARO
+    # ====================
+    tipo_faro = cache['tipo_faro']
 
-    logging.debug(f"[PT] {pattern}")
-
-    # Elaborazione in base al tipo di faro
-    if cache['tipo_faro'] == 'anabbagliante':
+    if tipo_faro == 'anabbagliante':
         image_output, point, angles = fit_lines.fit_lines(
             image_input, image_view, cache, 5, 40, 120, 1e-8, 1e-8, 1000
         )
-    elif cache['tipo_faro'] == 'fendinebbia':
+    elif tipo_faro == 'fendinebbia':
         image_output, point, angles = fit_lines.fit_lines(
             image_input, image_view, cache, 5, 40, 120, 1e-8, 1e-8, 1000, False, True
         )
-    elif cache['tipo_faro'] == 'abbagliante':
+    elif tipo_faro == 'abbagliante':
         image_output, point, angles = trova_contorni_abbagliante(
             image_input, image_view, cache
         )
+    else:
+        logging.warning(f"Tipo faro sconosciuto: {tipo_faro}")
+        point, angles = None, (0, 0, 0)
+        image_output = image_view.copy()
 
-    # Calcolo luminosità
-    sft_x = cache['config']['lux_sft_x'] * cache['config']['crop_w'] / 160
-    sft_y = cache['config']['lux_sft_y'] * cache['config']['crop_h'] / 160
+    # ====================
+    # 5. CALCOLO LUMINOSITÀ
+    # ====================
+    config = cache['config']
+    sft_x = config['lux_sft_x'] * config['crop_w'] / 160
+    sft_y = config['lux_sft_y'] * config['crop_h'] / 160
+    lux_size = (config['lux_w'], config['lux_h'])
 
     if point:
         lux = calcola_lux(
-            image_input, image_output, point, (sft_x, sft_y),
-            (cache['config']['lux_w'], cache['config']['lux_h']), cache
+            image_input, image_output, point,
+            (sft_x, sft_y), lux_size, cache
         )
     else:
+        center_point = (config['width'] / 2, config['height'] / 2)
         lux = calcola_lux(
-            image_input, image_output,
-            (cache['config']['width'] / 2, cache['config']['height'] / 2),
-            (sft_x, sft_y),
-            (cache['config']['lux_w'], cache['config']['lux_h']), cache
+            image_input, image_output, center_point,
+            (sft_x, sft_y), lux_size, cache
         )
 
+    # ====================
+    # 6. POST-PROCESSING
+    # ====================
     # Flip finale se posizione sinistra
-    if cache.get('pos','dx') == 'sx':
-        point = (cache['config']['width'] - point[0], point[1])
+    if is_left_position:
+        if point:
+            point = (config['width'] - point[0], point[1])
         image_output = cv2.flip(image_output, 1)
-
-
 
     # Visualizza croce di riferimento
     if stato_comunicazione.get('croce', '0') == '1':
-        if cache['tipo_faro'] == 'fendinebbia':
+        center_x = int(config['width'] / 2)
+        center_y = int(config['height'] / 2)
+        inclinazione = stato_comunicazione.get('inclinazione', 0)
+
+        if tipo_faro == 'fendinebbia':
             # Linee orizzontali per fendinebbia
-            y_top = int(cache['config']['height'] / 2) + \
-                   stato_comunicazione.get('inclinazione', 0) - \
-                   stato_comunicazione.get('TOV', 50)
-            y_bottom = int(cache['config']['height'] / 2) + \
-                      stato_comunicazione.get('inclinazione', 0) + \
-                      stato_comunicazione.get('TOV', 50)
+            tov = stato_comunicazione.get('TOV', 50)
+            y_top = center_y + inclinazione - tov
+            y_bottom = center_y + inclinazione + tov
 
             disegna_segmento(
                 image_output, (0, y_top),
-                (int(cache['config']['width']), y_top), 1, 'green'
+                (config['width'], y_top), 1, 'green'
             )
             disegna_segmento(
                 image_output, (0, y_bottom),
-                (int(cache['config']['width']), y_bottom), 1, 'green'
+                (config['width'], y_bottom), 1, 'green'
             )
         else:
+            # Croce standard per anabbagliante/abbagliante
+            tov = stato_comunicazione.get('TOV', 50)
+            toh = stato_comunicazione.get('TOH', 50)
             visualizza_croce_riferimento(
-                image_output,
-                int(cache['config']['width'] / 2),
-                int(cache['config']['height'] / 2) + stato_comunicazione.get('inclinazione', 0),
-                2 * stato_comunicazione.get('TOV', 50),
-                2 * stato_comunicazione.get('TOH', 50)
+                image_output, center_x, center_y + inclinazione,
+                2 * tov, 2 * toh
             )
 
-    # Aggiorna dati nella coda
+    # ====================
+    # 7. AGGIORNAMENTO DATI IN CODA
+    # ====================
     if point:
-        cache['queue'].put({
+        data = {
             'posiz_pattern_x': point[0],
             'posiz_pattern_y': point[1],
             'lux': lux,
             'yaw': angles[0],
             'pitch': angles[1],
             'roll': angles[2]
-        })
+        }
     else:
-        cache['queue'].put({
+        data = {
             'posiz_pattern_x': 0,
             'posiz_pattern_y': 0,
             'lux': lux,
             'yaw': 0,
             'pitch': 0,
             'roll': 0
-        })
+        }
 
-    # Debug info
+    cache['queue'].put(data)
+
+    # ====================
+    # 8. DEBUG E VISUALIZZAZIONE
+    # ====================
     if cache['DEBUG']:
-        elapsed = int(1000 * (time.monotonic() - t0))
-        fps = int(1 / (t0 - cache.get('t0', 0)))
-        msg = f"Durata elaborazione: {elapsed} ms, fps = {fps}"
+        elapsed_ms = int(1000 * (time.monotonic() - t0))
+        fps = int(1 / (t0 - cache.get('t0', 0))) if cache.get('t0') else 0
+        msg = f"Elaborazione: {elapsed_ms} ms, FPS: {fps}"
         logging.debug(msg)
+
         cv2.putText(
             image_output, msg, (5, 60),
             cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5,
@@ -195,11 +227,13 @@ def show_frame(cache, lmain):
         )
         cache['t0'] = t0
 
-    # Converti e visualizza immagine
+    # Converti e visualizza immagine finale
     img = PIL.Image.fromarray(image_output)
     imgtk = ImageTk.PhotoImage(image=img)
     lmain.imgtk = imgtk
     lmain.configure(image=imgtk)
+
+    # Richiama ricorsivamente dopo 5ms
     lmain.after(5, lambda: show_frame(cache, lmain))
 
 

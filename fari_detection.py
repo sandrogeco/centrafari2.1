@@ -540,6 +540,48 @@ def draw_results(image_output: np.ndarray,
         cv2.circle(image_output, (int(round(punto[0])), int(round(punto[1]))),
                   radius, color, -1, lineType=cv2.LINE_AA)
 
+        # Disegna indicatori direzionali (sx, dx, su, giù)
+        px = int(round(punto[0]))
+        py = int(round(punto[1]))
+
+        # Simboli e colori per i 3 livelli
+        symbols = ['', '!', '!!']  # 0=niente, 1=poco fuori, 2=molto fuori
+        dir_colors = [
+            (0, 255, 0),      # 0 = verde (ok)
+            (0, 255, 255),    # 1 = giallo (warning)
+            (0, 0, 255)       # 2 = rosso (error)
+        ]
+
+        offset = 20  # Distanza dal punto per il testo
+
+        # Sinistra (left) - punto troppo a destra, muovere a sinistra
+        if ptok_result['left'] > 0:
+            level = ptok_result['left']
+            text = f"< {symbols[level]}"
+            cv2.putText(image_output, text, (px - offset - 35, py + 5),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, dir_colors[level], 2, cv2.LINE_AA)
+
+        # Destra (right) - punto troppo a sinistra, muovere a destra
+        if ptok_result['right'] > 0:
+            level = ptok_result['right']
+            text = f"{symbols[level]} >"
+            cv2.putText(image_output, text, (px + offset, py + 5),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, dir_colors[level], 2, cv2.LINE_AA)
+
+        # Su (up) - punto troppo in basso, muovere su
+        if ptok_result['up'] > 0:
+            level = ptok_result['up']
+            text = f"^ {symbols[level]}"
+            cv2.putText(image_output, text, (px - 15, py - offset),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, dir_colors[level], 2, cv2.LINE_AA)
+
+        # Giù (down) - punto troppo in alto, muovere giù
+        if ptok_result['down'] > 0:
+            level = ptok_result['down']
+            text = f"v {symbols[level]}"
+            cv2.putText(image_output, text, (px - 15, py + offset + 15),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, dir_colors[level], 2, cv2.LINE_AA)
+
         # Disegna punti fitted (solo per anabbagliante/fendinebbia)
         punti_fitted = results.get('punti_fitted', np.array([]))
         if len(punti_fitted) > 0:

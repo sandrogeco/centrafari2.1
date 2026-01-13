@@ -2,7 +2,7 @@
     "DEBUG": false,
     "CAMERA": false,
     "COMM":true,
-    "AUTOEXP": true,
+    "AUTOEXP": false,
     "width": 630,
     "height": 320,
     "window_shift_x": 278,

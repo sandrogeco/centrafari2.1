@@ -1,7 +1,7 @@
 {
     "DEBUG": false,
     "CAMERA": false,
-    "COMM": false,
+    "COMM":true,
     "AUTOEXP": true,
     "width": 630,
     "height": 320,

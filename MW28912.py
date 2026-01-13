@@ -135,7 +135,7 @@ def show_frame(cache, lmain):
 
 
     # Visualizza croce di riferimento
-    if stato_comunicazione.get('croce', 0) == 1:
+    if stato_comunicazione.get('croce', '0') == '1':
         if cache['tipo_faro'] == 'fendinebbia':
             # Linee orizzontali per fendinebbia
             y_top = int(cache['config']['height'] / 2) + \

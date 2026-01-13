@@ -18,8 +18,8 @@ def decode_cmd1(resp,commands):
     def find_cmd(cmd,length):
         start=resp.find(cmd)
         end=start+len(cmd)
-        if start>0:
-          commands['cmd']=resp[end+1:end+length]
+        if start>=0:
+          commands[cmd]=resp[end+1:end+length+1]
 
     find_cmd('croce',1)
     find_cmd('inclinazione',5)

@@ -21,6 +21,8 @@
     "cam_g": 0.22,
     "cam_c": 0,
     "port": 28500,
+    "TOV": 50,
+    "TOH": 50,
     "crop_center": [
         325,
         237

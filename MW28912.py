@@ -166,7 +166,7 @@ def show_frame(cache, lmain):
 
         if tipo_faro == 'fendinebbia':
             # Linee orizzontali per fendinebbia
-            tov = stato_comunicazione.get('TOV', 50)
+            tov = config.get('TOV', 50)
             y_top = center_y + inclinazione - tov
             y_bottom = center_y + inclinazione + tov
 
@@ -180,8 +180,8 @@ def show_frame(cache, lmain):
             )
         else:
             # Croce standard per anabbagliante/abbagliante
-            tov = stato_comunicazione.get('TOV', 50)
-            toh = stato_comunicazione.get('TOH', 50)
+            tov = config.get('TOV', 50)
+            toh = config.get('TOH', 50)
             visualizza_croce_riferimento(
                 image_output, center_x, center_y + inclinazione,
                 2 * tov, 2 * toh

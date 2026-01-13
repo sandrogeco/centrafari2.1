@@ -98,12 +98,12 @@ def show_frame(cache, lmain):
         image_view = cv2.flip(image_view, 1)
 
     # Conversione pattern (0,1 = grayscale, 2 = colormap JET)
-    pattern = stato_comunicazione.get('pattern', 0)
+    pattern = stato_comunicazione.get('pattern', '0')
     logging.debug(f"[PT] {pattern}")
 
-    if pattern in [0, 1]:
+    if pattern in ['0', '1']:
         image_input = cv2.cvtColor(image_input, cv2.COLOR_BGR2GRAY)
-    elif pattern == 2:
+    elif pattern == '2':
         image_view = cv2.applyColorMap(255 - image_view.copy(), cv2.COLORMAP_JET)
         image_input = cv2.cvtColor(image_input, cv2.COLOR_BGR2GRAY)
 

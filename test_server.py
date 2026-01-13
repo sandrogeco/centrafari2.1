@@ -16,14 +16,15 @@ def create_response():
     """
     Crea una risposta di test con formato keyword-based.
 
-    Formato: croce:{val} inclinazione:{val} run:{val}
+    Formato: croce:{val} inclinazione:{val} run:{val} tipo_faro:{val}
     """
     croce = '1'           # 1 char
     inclinazione = '00000'  # 5 chars
     run = '1'             # 1 char
+    tipo_faro = 'anabbagliante'  # max 15 chars (anabbagliante, abbagliante, fendinebbia)
 
     # Formato keyword-based
-    response = f"croce:{croce} inclinazione:{inclinazione} run:{run}"
+    response = f"croce:{croce} inclinazione:{inclinazione} run:{run} tipo_faro:{tipo_faro}"
     return response
 
 def main():

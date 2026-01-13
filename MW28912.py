@@ -110,7 +110,7 @@ def show_frame(cache, lmain):
     # ====================
     # 4. ELABORAZIONE TIPO FARO
     # ====================
-    tipo_faro = cache['tipo_faro']
+    tipo_faro = stato_comunicazione.get('tipo_faro', 'anabbagliante').strip()
 
     if tipo_faro == 'anabbagliante':
         image_output, point, angles = fit_lines.fit_lines(
@@ -296,7 +296,6 @@ if __name__ == "__main__":
         "CAMERA": config.get("CAMERA") or False,
         "COMM": config.get("COMM") or False,
         "AUTOEXP": config.get("AUTOEXP") or False,
-        'tipo_faro':'anabbagliante',
         "config": config,
         "stato_comunicazione": {},
         "queue": Queue()

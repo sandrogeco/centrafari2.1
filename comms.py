@@ -24,6 +24,7 @@ def decode_cmd1(resp,commands):
     find_cmd('croce',1)
     find_cmd('inclinazione',5)
     find_cmd('run',1)
+    find_cmd('tipo_faro',15)
 
 def thread_comunicazione(port, cache):
     first_run = True

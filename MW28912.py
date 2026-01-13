@@ -91,6 +91,8 @@ def show_frame(cache, lmain):
     image_input, image_view = preprocess(image_input, cache)
     if cache['AUTOEXP']:
         image_view = autoexp(image_input, image_view, cache)
+    else:
+        cache['autoexp_ok'] = True
 
     # Flip immagine se posizione sinistra
     is_left_position = cache.get('pos', 'dx') == 'sx'

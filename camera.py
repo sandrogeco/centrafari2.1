@@ -28,7 +28,7 @@ def set_camera(i, config):
         logging.error(f"error: {e}")
 
 def autoexp(image_input,image_view,cache):
-    cache['autoexp'] = True
+    cache['autoexp_ok'] = True
 
     try:
         r=np.max(image_input)
@@ -38,10 +38,10 @@ def autoexp(image_input,image_view,cache):
         exp_old=cache['config']['exposure_absolute']
         if (r>240):
             cache['config']['exposure_absolute']=cache['config']['exposure_absolute']*0.9
-            cache['autoexp'] = False
+            cache['autoexp_ok'] = False
         if r <235:
             cache['config']['exposure_absolute'] = cache['config']['exposure_absolute'] * 1.1
-            cache['autoexp'] = False
+            cache['autoexp_ok'] = False
         if (r>=235)and(r<=240):
             if (r>237):
                  cache['config']['exposure_absolute']=cache['config']['exposure_absolute']*0.998
@@ -57,7 +57,7 @@ def autoexp(image_input,image_view,cache):
                 os.system(f"v4l2-ctl --device /dev/video{cache['config']['indice_camera']} --set-ctrl=exposure_absolute={cache['config']['exposure_absolute']}")
                 time.sleep(0.1)
 
-        # if (cache['autoexp'] ==False):
+        # if (cache['autoexp_ok'] ==False):
         #     cv2.putText(image_view, str(r)+" calcolo autoe in corso " + str(cache['config']['exposure_absolute'])+ " 235s:"+str(s235), (5, 80),
         #             cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, get_colore('green'), 1)
     except Exception as e:

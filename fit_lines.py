@@ -103,7 +103,7 @@ def fit_lines(image_input,image_output,cache,
             cache['Y0']=0
             cache['r_bound']=x_max
 
-        if cache['autoexp']:
+        if cache['autoexp_ok']:
             #marginl=0
             cache['margin_auto']=0
             cache['s_err']=np.Inf

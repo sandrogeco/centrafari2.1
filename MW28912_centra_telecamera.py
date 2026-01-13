@@ -27,7 +27,7 @@ def show_frame( cache, lmain):
         return
    # image_input = image_input[-cache['config']['height']:, :]
     fixexp(cache,5000)
-    #cache['autoexp']=False
+    #cache['autoexp_ok']=False
 
     if cache["crop_center"]:
         cv2.circle(image_input, cache["crop_center"], 5, (255, 0, 0), 2)

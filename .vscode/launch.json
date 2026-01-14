@@ -10,7 +10,12 @@
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
-      "args": "${command:pickArgs}"
+      "args": "${command:pickArgs}",
+      "python": "${command:python.interpreterPath}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "justMyCode": false
     }
   ]
 }

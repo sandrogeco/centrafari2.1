@@ -43,7 +43,18 @@ def thread_comunicazione(port, cache):
             first_run = False
         else:
             try:
-                p = cache['queue'].get(timeout=0.3)
+                # Svuota la coda e prendi solo l'ULTIMO valore (il più recente)
+                p = None
+                while True:
+                    try:
+                        p = cache['queue'].get_nowait()
+                    except:
+                        break
+
+                # Se non c'era nulla nella coda, aspetta
+                if p is None:
+                    p = cache['queue'].get(timeout=0.3)
+
                 msg = f"XYL {int(p['posiz_pattern_x'])} {int(p['posiz_pattern_y'])} {p['lux']:.2f} {p['roll']:.2f} {p['yaw']:.2f} {p['pitch']:.2f} {p['left']} {p['right']} {p['up']} {p['down']} "
             except:
                 msg = "idle "

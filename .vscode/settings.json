@@ -5,5 +5,8 @@
     "python.terminal.activateEnvironment": true,
     "python.analysis.extraPaths": [
         "${workspaceFolder}"
-    ]
+    ],
+    "terminal.integrated.env.linux": {
+        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${env:PATH}"
+    }
 }

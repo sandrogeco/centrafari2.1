@@ -1,0 +1,3 @@
+Test commit - verifico che il workflow git funzioni correttamente
+Data: 2026-01-15
+Branch: claude/centrafari2.0-JcwTj

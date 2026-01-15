@@ -509,21 +509,14 @@ def draw_results(image_output: np.ndarray,
             # Disegna contorno completo in grigio
             cv2.drawContours(image_output, [largest], -1, (100, 100, 100), 1, lineType=cv2.LINE_AA)
 
-            # Trova parte superiore del contorno (cut-off) e ridisegnala con colore dinamico
-            contour_points = largest.reshape(-1, 2)
-            y_min = contour_points[:, 1].min()
-
-            # Tolleranza: considera "parte superiore" i punti entro 15 pixel dalla Y minima
-            cutoff_tolerance = 15
-            upper_points = contour_points[contour_points[:, 1] <= y_min + cutoff_tolerance]
-
-            # Disegna parte superiore con colore dinamico (verde/giallo/rosso)
-            if len(upper_points) > 1:
+            # Disegna i punti usati per il fit con colore dinamico (verde/giallo/rosso)
+            punti_fitted = results.get('punti_fitted', np.array([]))
+            if len(punti_fitted) > 1:
                 # Ordina punti per X per disegnarli come linea continua
-                upper_points = upper_points[upper_points[:, 0].argsort()]
-                for i in range(len(upper_points) - 1):
-                    pt1 = tuple(upper_points[i])
-                    pt2 = tuple(upper_points[i + 1])
+                fitted_sorted = punti_fitted[punti_fitted[:, 0].argsort()]
+                for i in range(len(fitted_sorted) - 1):
+                    pt1 = tuple(fitted_sorted[i].astype(int))
+                    pt2 = tuple(fitted_sorted[i + 1].astype(int))
                     cv2.line(image_output, pt1, pt2, color, 2, lineType=cv2.LINE_AA)
         except:
             pass

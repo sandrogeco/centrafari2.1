@@ -95,7 +95,7 @@ def show_frame(cache, lmain):
         cache['autoexp_ok'] = True
 
     # Flip immagine se posizione sinistra
-    is_left_position = cache.get('pos', 'dx') == 'sx'
+    is_left_position = cache['stato_comunicazione'].get('pos', 'dx') == 'sx'
     if is_left_position:
         image_input = cv2.flip(image_input, 1)
         image_view = cv2.flip(image_view, 1)

@@ -349,9 +349,11 @@ if __name__ == "__main__":
         "AUTOEXP": config.get("AUTOEXP") or False,
         "config": config,
         "stato_comunicazione": {},
-        "queue": Queue(),
-        "calibration_manager": CalibrationManager(percorso_script)
+        "queue": Queue()
     }
+
+    # Inizializza calibration_manager DOPO cache (ha bisogno di cache)
+    cache["calibration_manager"] = CalibrationManager(percorso_script, cache)
 
     #Avvia thread di comunicazione 
     if cache['COMM']:
@@ -369,9 +371,9 @@ if __name__ == "__main__":
             set_camera(indice_camera, cache['config'])
             time.sleep(1)
 
-        # Callback per il click del mouse (modalità calibrazione)
+        # Callback per il click del mouse (modalità calibrazione e pulsante touch)
         def callback_click(event):
-            """Gestisce il click del mouse durante la calibrazione."""
+            """Gestisce il click del mouse/touch durante la calibrazione."""
             calibration_manager = cache.get('calibration_manager')
             if calibration_manager and calibration_manager.calibration_active:
                 logging.info(f"Click ricevuto in calibrazione: ({event.x}, {event.y})")
@@ -387,7 +389,7 @@ if __name__ == "__main__":
         )
         root.resizable(False, False)
         lmain = tk.Label(root)
-        lmain.bind("<Button-1>", callback_click)  # Bind click sinistro
+        lmain.bind("<Button-1>", callback_click)  # Bind click sinistro/touch
         lmain.pack()
 
         show_frame(cache, lmain)

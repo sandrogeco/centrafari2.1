@@ -21,21 +21,26 @@ class CalibrationManager:
     - Step 2+: Futuri step (da aggiungere)
     """
 
-    def __init__(self, config_path):
+    def __init__(self, config_path, cache):
         """
         Inizializza il gestore di calibrazione.
 
         Args:
             config_path: Path alla directory contenente i file di configurazione
+            cache: Dizionario cache condiviso con MW28912
         """
         self.config_path = config_path
         self.default_file = os.path.join(config_path, "default.json")
         self.config_file = os.path.join(config_path, "config.json")
+        self.cache = cache
 
         # Stato calibrazione
         self.current_step = 0
         self.step_data = {}
         self.calibration_active = False
+
+        # Area pulsante "TERMINA CALIBRAZIONE" (x, y, w, h)
+        self.exit_button_rect = None
 
     def start_calibration(self):
         """
@@ -67,6 +72,13 @@ class CalibrationManager:
         self.calibration_active = False
         self.current_step = 0
         self.step_data = {}
+
+        # Rimuovi "calibrazione" da tipo_faro per uscire dalla modalità
+        if 'tipo_faro' in self.cache['stato_comunicazione']:
+            if self.cache['stato_comunicazione']['tipo_faro'] == 'calibrazione':
+                # Ripristina a anabbagliante (default)
+                self.cache['stato_comunicazione']['tipo_faro'] = 'anabbagliante'
+                logging.info("tipo_faro ripristinato a 'anabbagliante'")
 
     def process_frame(self, image_output, cache):
         """
@@ -120,6 +132,35 @@ class CalibrationManager:
             cv2.putText(image_output, "confermare e terminare", (5, 60),
                        cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, get_colore('green'), 1)
 
+        # Pulsante "TERMINA CALIBRAZIONE" in basso a destra
+        width = cache['config'].get('width', 630)
+        height = cache['config'].get('height', 320)
+
+        btn_w = 200
+        btn_h = 40
+        btn_x = width - btn_w - 10
+        btn_y = height - btn_h - 10
+
+        # Salva area pulsante per rilevamento click
+        self.exit_button_rect = (btn_x, btn_y, btn_w, btn_h)
+
+        # Disegna rettangolo pulsante (rosso)
+        cv2.rectangle(image_output, (btn_x, btn_y), (btn_x + btn_w, btn_y + btn_h),
+                     get_colore('red'), -1)
+        cv2.rectangle(image_output, (btn_x, btn_y), (btn_x + btn_w, btn_y + btn_h),
+                     get_colore('white'), 2)
+
+        # Testo "TERMINA" centrato nel pulsante
+        text = "TERMINA"
+        font_scale = 1.0
+        thickness = 2
+        text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)[0]
+        text_x = btn_x + (btn_w - text_size[0]) // 2
+        text_y = btn_y + (btn_h + text_size[1]) // 2
+
+        cv2.putText(image_output, text, (text_x, text_y),
+                   cv2.FONT_HERSHEY_SIMPLEX, font_scale, get_colore('white'), thickness)
+
         return image_output
 
     def handle_click(self, x, y, cache):
@@ -159,6 +200,14 @@ class CalibrationManager:
             True se lo step è completato, False altrimenti
         """
         logging.info(f"Step 1 - Click ricevuto: ({x}, {y})")
+
+        # Verifica se il click è sul pulsante TERMINA
+        if self.exit_button_rect:
+            btn_x, btn_y, btn_w, btn_h = self.exit_button_rect
+            if btn_x <= x <= btn_x + btn_w and btn_y <= y <= btn_y + btn_h:
+                logging.info("Click sul pulsante TERMINA: esco dalla calibrazione")
+                self.stop_calibration()
+                return True
 
         # Primo click: imposta crop_center
         if not self.step_data.get('crop_center'):

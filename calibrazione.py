@@ -60,11 +60,11 @@ class CalibrationManager:
         self.current_step = 1
         self.calibration_active = True
         self.step_data = {
-            'crop_center': self.cache['config'].get('crop_center'),  # Prendi da default
-            'ok': False
+            'state': 0,  # Stato iniziale
+            'crop_center': self.cache['config'].get('crop_center')  # Prendi da default
         }
 
-        logging.info(f"Calibrazione avviata: step {self.current_step}")
+        logging.info(f"Calibrazione avviata: step {self.current_step}, stato 0")
 
     def stop_calibration(self):
         """Termina la calibrazione, salva config.json e ricarica."""
@@ -129,19 +129,23 @@ class CalibrationManager:
         Returns:
             Immagine con overlay
         """
-        # Disegna cerchio blu sul crop_center se già impostato
+        state = self.step_data.get('state', 0)
         crop_center = self.step_data.get('crop_center')
-        if crop_center:
+
+        # Disegna cerchio blu sul crop_center se già impostato (stato 1)
+        if state == 1 and crop_center:
             cv2.circle(image_output, crop_center, 5, (255, 0, 0), 2)
             cv2.circle(image_output, crop_center, 10, (255, 0, 0), 1)
 
-        # Istruzioni
-        if not crop_center:
+        # Messaggi per stato
+        if state == 0:
+            # Stato 0: Messaggio iniziale
             cv2.putText(image_output, "CALIBRAZIONE: Clicca sul punto che", (5, 30),
                        cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, get_colore('cyan'), 1)
             cv2.putText(image_output, "dovra' essere al centro del frame", (5, 60),
                        cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, get_colore('cyan'), 1)
-        elif self.step_data.get('ok'):
+        elif state == 1:
+            # Stato 1: Conferma
             cv2.putText(image_output, "CALIBRAZIONE: Clicca di nuovo per", (5, 30),
                        cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, get_colore('green'), 1)
             cv2.putText(image_output, "confermare e terminare", (5, 60),
@@ -206,6 +210,11 @@ class CalibrationManager:
         """
         Gestisce il click per lo step 1: centra telecamera.
 
+        Macchina a stati:
+        - Stato 0: Attendi primo click sul punto centrale
+        - Stato 1: Attendi secondo click per conferma
+        - Stato 2: Salva e termina
+
         Args:
             x: Coordinata X del click
             y: Coordinata Y del click
@@ -214,9 +223,10 @@ class CalibrationManager:
         Returns:
             True se lo step è completato, False altrimenti
         """
-        logging.info(f"Step 1 - Click ricevuto: ({x}, {y})")
+        state = self.step_data.get('state', 0)
+        logging.info(f"Step 1 - Click ricevuto: ({x}, {y}), stato={state}")
 
-        # Verifica se il click è sul pulsante TERMINA
+        # PULSANTE TERMINA: Sempre disponibile (fuori dalla macchina a stati)
         if self.exit_button_rect:
             btn_x, btn_y, btn_w, btn_h = self.exit_button_rect
             if btn_x <= x <= btn_x + btn_w and btn_y <= y <= btn_y + btn_h:
@@ -224,20 +234,32 @@ class CalibrationManager:
                 self.stop_calibration()
                 return True
 
-        # Primo click: imposta crop_center
-        if not self.step_data.get('crop_center'):
+        # STATO 0: Primo click sul punto centrale
+        if state == 0:
+            # Salva coordinate in cache
             self.step_data['crop_center'] = (x, y)
-            self.step_data['ok'] = True
-
-            # Aggiorna cache['config'] (non salvare su file ancora)
             self.cache['config']['crop_center'] = [x, y]
 
-            logging.info(f"crop_center impostato a ({x}, {y}) in cache")
+            # Vai a stato 1
+            self.step_data['state'] = 1
+            logging.info(f"Stato 0->1: crop_center={x},{y} salvato in cache")
             return False
 
-        # Secondo click: conferma e termina
-        elif self.step_data.get('ok'):
-            logging.info("Calibrazione Step 1 completata")
+        # STATO 1: Secondo click per conferma
+        elif state == 1:
+            # Vai a stato 2 (salva e termina)
+            self.step_data['state'] = 2
+            logging.info("Stato 1->2: Confermato, salvataggio in corso...")
+
+            # Salva config.json
+            try:
+                with open(self.config_file, 'w') as f:
+                    json.dump(self.cache['config'], f, indent=4)
+                logging.info("Config.json salvato con successo")
+            except Exception as e:
+                logging.error(f"Errore nel salvare config.json: {e}")
+
+            # Termina calibrazione
             self.stop_calibration()
             return True
 

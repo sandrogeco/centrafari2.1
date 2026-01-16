@@ -1,7 +1,7 @@
 {
     "DEBUG": false,
     "CAMERA": false,
-    "COMM":true,
+    "COMM": true,
     "AUTOEXP": false,
     "width": 630,
     "height": 320,
@@ -29,6 +29,6 @@
     "margin_l": 0.1,
     "x_coeff_pixel_m": 1.375,
     "y_coeff_pixel_m": 1.375,
-    "TOH":10,
-    "TOV":10
+    "TOH": 10,
+    "TOV": 10
 }

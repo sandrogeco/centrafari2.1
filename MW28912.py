@@ -391,7 +391,7 @@ if __name__ == "__main__":
     #Avvia thread di comunicazione 
     if cache['COMM']:
         threading.Thread(
-            target=partial(thread_comunicazione, config['port'], cache),
+            target=partial(thread_comunicazione, cache['config']['port'], cache),
             daemon=True,
             name="com_in"
         ).start()
@@ -417,8 +417,8 @@ if __name__ == "__main__":
         root = tk.Tk()
         root.overrideredirect(True)
         root.geometry(
-            f"{config['width']}x{config['height']}+"
-            f"{config['window_shift_x']}+{config['window_shift_y']}"
+            f"{cache['config']['width']}x{cache['config']['height']}+"
+            f"{cache['config']['window_shift_x']}+{cache['config']['window_shift_y']}"
         )
         root.resizable(False, False)
         lmain = tk.Label(root)

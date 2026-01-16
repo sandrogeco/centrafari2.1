@@ -41,6 +41,36 @@ from utils import uccidi_processo, get_colore, disegna_segmento
 from calibrazione import CalibrationManager
 
 
+def init_config(config_path, cache, percorso_script):
+    """
+    Carica configurazione da file JSON e aggiorna la cache.
+
+    Args:
+        config_path: Nome file config (es. "config.json" o "default.json")
+        cache: Dizionario cache da aggiornare
+        percorso_script: Path directory script
+    """
+    filepath = os.path.join(percorso_script, config_path)
+    logging.info(f"Caricamento configurazione da {config_path}")
+
+    with open(filepath, "r") as f:
+        config = json.load(f)
+
+    # Aggiorna cache
+    cache["config"] = config
+    cache["DEBUG"] = config.get("DEBUG") or False
+    cache["CAMERA"] = config.get("CAMERA") or False
+    cache["COMM"] = config.get("COMM") or False
+    cache["AUTOEXP"] = config.get("AUTOEXP") or False
+
+    # Aggiorna livello logging
+    logging.getLogger().setLevel(
+        logging.DEBUG if config.get("DEBUG", False) else logging.INFO
+    )
+
+    logging.info(f"Configurazione caricata da {config_path}")
+
+
 def show_frame(cache, lmain):
     """
     Elabora e visualizza un frame dell'immagine del faro.
@@ -118,17 +148,21 @@ def show_frame(cache, lmain):
 
     # Modalità calibrazione
     if tipo_faro == 'calibrazione':
+        # Crea CalibrationManager on-demand se non esiste
+        if 'calibration_manager' not in cache:
+            cache['calibration_manager'] = CalibrationManager(cache['percorso_script'], cache)
+
+        calibration_manager = cache['calibration_manager']
+
         # Avvia calibrazione se non già attiva
-        calibration_manager = cache.get('calibration_manager')
-        if calibration_manager and not calibration_manager.calibration_active:
+        if not calibration_manager.calibration_active:
             calibration_manager.start_calibration()
 
         # Usa image_view come output (senza detection)
         image_output = image_view.copy()
 
         # Applica overlay di calibrazione
-        if calibration_manager:
-            image_output = calibration_manager.process_frame(image_output, cache)
+        image_output = calibration_manager.process_frame(image_output, cache)
 
         # Nessun punto/angoli durante calibrazione
         point = None
@@ -332,28 +366,27 @@ if __name__ == "__main__":
 
     logging.info(f"Avvio MW28912.py {sys.argv}")
 
-    # Carica configurazione
+    # Path directory script
     percorso_script = os.path.dirname(os.path.abspath(__file__))
-    with open(os.path.join(percorso_script, "config.json"), "r") as f:
-        config = json.load(f)
-
-    logging.getLogger().setLevel(
-        logging.DEBUG if config.get("DEBUG", False) else logging.INFO
-    )
 
     # Inizializza cache
     cache = {
-        "DEBUG": config.get("DEBUG") or False,
-        "CAMERA": config.get("CAMERA") or False,
-        "COMM": config.get("COMM") or False,
-        "AUTOEXP": config.get("AUTOEXP") or False,
-        "config": config,
+        "DEBUG": False,
+        "CAMERA": False,
+        "COMM": False,
+        "AUTOEXP": False,
+        "config": {},
         "stato_comunicazione": {},
-        "queue": Queue()
+        "queue": Queue(),
+        "percorso_script": percorso_script,
+        "init_config": None  # Sarà impostato dopo
     }
 
-    # Inizializza calibration_manager DOPO cache (ha bisogno di cache)
-    cache["calibration_manager"] = CalibrationManager(percorso_script, cache)
+    # Passa riferimento a init_config in cache (per calibrazione)
+    cache["init_config"] = lambda config_path: init_config(config_path, cache, percorso_script)
+
+    # Carica configurazione iniziale
+    init_config("config.json", cache, percorso_script)
 
     #Avvia thread di comunicazione 
     if cache['COMM']:

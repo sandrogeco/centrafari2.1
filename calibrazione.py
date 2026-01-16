@@ -7,7 +7,6 @@ import cv2
 import json
 import os
 import logging
-import shutil
 from utils import get_colore
 
 
@@ -45,30 +44,46 @@ class CalibrationManager:
     def start_calibration(self):
         """
         Avvia la procedura di calibrazione.
-        Copia default.json -> config.json e inizializza lo step 1.
+        Carica default.json in cache e inizializza lo step 1.
         """
-        logging.info("Avvio calibrazione: copia default.json -> config.json")
+        logging.info("Avvio calibrazione: caricamento default.json in cache")
 
-        # Copia default.json -> config.json
-        if os.path.exists(self.default_file):
-            shutil.copy(self.default_file, self.config_file)
-            logging.info("Config ripristinato da default.json")
+        # Carica default.json in cache (invece di copiare file)
+        init_config = self.cache.get('init_config')
+        if init_config:
+            init_config("default.json")
+            logging.info("Configurazione default caricata in cache")
         else:
-            logging.warning("default.json non trovato, uso config.json esistente")
+            logging.warning("init_config non disponibile in cache")
 
         # Inizializza step 1: centra telecamera
         self.current_step = 1
         self.calibration_active = True
         self.step_data = {
-            'crop_center': None,
+            'crop_center': self.cache['config'].get('crop_center'),  # Prendi da default
             'ok': False
         }
 
         logging.info(f"Calibrazione avviata: step {self.current_step}")
 
     def stop_calibration(self):
-        """Termina la calibrazione e salva i dati."""
+        """Termina la calibrazione, salva config.json e ricarica."""
         logging.info("Calibrazione terminata")
+
+        # Salva cache['config'] su config.json
+        try:
+            with open(self.config_file, 'w') as f:
+                json.dump(self.cache['config'], f, indent=4)
+            logging.info("Configurazione salvata in config.json")
+        except Exception as e:
+            logging.error(f"Errore nel salvare config.json: {e}")
+
+        # Ricarica config.json in cache
+        init_config = self.cache.get('init_config')
+        if init_config:
+            init_config("config.json")
+            logging.info("Configurazione ricaricata da config.json")
+
         self.calibration_active = False
         self.current_step = 0
         self.step_data = {}
@@ -214,10 +229,10 @@ class CalibrationManager:
             self.step_data['crop_center'] = (x, y)
             self.step_data['ok'] = True
 
-            # Salva in config.json
-            self._save_crop_center(x, y)
+            # Aggiorna cache['config'] (non salvare su file ancora)
+            self.cache['config']['crop_center'] = [x, y]
 
-            logging.info(f"crop_center impostato a ({x}, {y})")
+            logging.info(f"crop_center impostato a ({x}, {y}) in cache")
             return False
 
         # Secondo click: conferma e termina
@@ -227,31 +242,6 @@ class CalibrationManager:
             return True
 
         return False
-
-    def _save_crop_center(self, x, y):
-        """
-        Salva crop_center in config.json.
-
-        Args:
-            x: Coordinata X
-            y: Coordinata Y
-        """
-        try:
-            # Leggi config.json
-            with open(self.config_file, 'r') as f:
-                config = json.load(f)
-
-            # Aggiorna crop_center
-            config['crop_center'] = [x, y]
-
-            # Salva config.json
-            with open(self.config_file, 'w') as f:
-                json.dump(config, f, indent=4)
-
-            logging.info(f"crop_center salvato in config.json: [{x}, {y}]")
-
-        except Exception as e:
-            logging.error(f"Errore nel salvare crop_center: {e}")
 
     def get_status(self):
         """

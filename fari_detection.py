@@ -134,10 +134,10 @@ def calculate_angles(X0: float, Y0: float, mo: float, cache: dict) -> Tuple[floa
     """
     try:
         config = cache["config"]
-        qin = int(cache['stato_comunicazione'].get('qin', config.get('qin', 1)))
+        qin = float(cache['stato_comunicazione'].get('qin', config.get('qin', 1)))
 
         dx = (X0 - cache['config']['width'] / 2) / qin
-        dy = (Y0 - cache['config']['height'] / 2 + cache['stato_comunicazione']['inclinazione']) / qin
+        dy = (Y0 - cache['config']['height'] / 2 + float(cache['stato_comunicazione']['inclinazione'])) / qin
         yaw_deg = np.degrees(np.arctan2(dx, 25))
         pitch_deg = np.degrees(np.arctan2(dy, 25))
         roll_deg = np.degrees(np.arctan(mo))

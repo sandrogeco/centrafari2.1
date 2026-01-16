@@ -38,6 +38,7 @@ from funcs_luminosita import calcola_lux
 from camera import set_camera, apri_camera, autoexp
 from comms import thread_comunicazione
 from utils import uccidi_processo, get_colore, disegna_segmento
+from calibrazione import CalibrationManager
 
 
 def show_frame(cache, lmain):
@@ -111,33 +112,54 @@ def show_frame(cache, lmain):
         image_input = cv2.cvtColor(image_input, cv2.COLOR_BGR2GRAY)
 
     # ====================
-    # 4. ELABORAZIONE TIPO FARO
+    # 4. ELABORAZIONE TIPO FARO / CALIBRAZIONE
     # ====================
     tipo_faro = stato_comunicazione.get('tipo_faro', 'anabbagliante').strip()
 
-    # Esegui detection (solo calcolo, no disegno)
-    if tipo_faro == 'anabbagliante':
-        results = fari_detection.detect_anabbagliante(
-            image_input, cache, 5, 40, 120, 1e-8, 1e-8, 1000
-        )
-    elif tipo_faro == 'fendinebbia':
-        results = fari_detection.detect_fendinebbia(
-            image_input, cache, 5, 40, 120, 1e-8, 1e-8, 1000
-        )
-    elif tipo_faro == 'abbagliante':
-        results = fari_detection.detect_abbagliante(
-            image_input, cache
-        )
-    else:
-        logging.warning(f"Tipo faro sconosciuto: {tipo_faro}")
+    # Modalità calibrazione
+    if tipo_faro == 'calibrazione':
+        # Avvia calibrazione se non già attiva
+        calibration_manager = cache.get('calibration_manager')
+        if calibration_manager and not calibration_manager.calibration_active:
+            calibration_manager.start_calibration()
+
+        # Usa image_view come output (senza detection)
+        image_output = image_view.copy()
+
+        # Applica overlay di calibrazione
+        if calibration_manager:
+            image_output = calibration_manager.process_frame(image_output, cache)
+
+        # Nessun punto/angoli durante calibrazione
+        point = None
+        angles = (0, 0, 0)
         results = {'punto': None, 'angoli': (0, 0, 0), 'linee': [], 'contorni': []}
 
-    # Disegna i risultati
-    image_output = fari_detection.draw_results(image_view, results, cache)
+    # Modalità detection normale
+    else:
+        # Esegui detection (solo calcolo, no disegno)
+        if tipo_faro == 'anabbagliante':
+            results = fari_detection.detect_anabbagliante(
+                image_input, cache, 5, 40, 120, 1e-8, 1e-8, 1000
+            )
+        elif tipo_faro == 'fendinebbia':
+            results = fari_detection.detect_fendinebbia(
+                image_input, cache, 5, 40, 120, 1e-8, 1e-8, 1000
+            )
+        elif tipo_faro == 'abbagliante':
+            results = fari_detection.detect_abbagliante(
+                image_input, cache
+            )
+        else:
+            logging.warning(f"Tipo faro sconosciuto: {tipo_faro}")
+            results = {'punto': None, 'angoli': (0, 0, 0), 'linee': [], 'contorni': []}
 
-    # Estrai punto e angoli dai risultati
-    point = results['punto']
-    angles = results['angoli']
+        # Disegna i risultati
+        image_output = fari_detection.draw_results(image_view, results, cache)
+
+        # Estrai punto e angoli dai risultati
+        point = results['punto']
+        angles = results['angoli']
 
     # ====================
     # 5. CALCOLO LUMINOSITÀ
@@ -327,7 +349,8 @@ if __name__ == "__main__":
         "AUTOEXP": config.get("AUTOEXP") or False,
         "config": config,
         "stato_comunicazione": {},
-        "queue": Queue()
+        "queue": Queue(),
+        "calibration_manager": CalibrationManager(percorso_script)
     }
 
     #Avvia thread di comunicazione 
@@ -346,6 +369,16 @@ if __name__ == "__main__":
             set_camera(indice_camera, cache['config'])
             time.sleep(1)
 
+        # Callback per il click del mouse (modalità calibrazione)
+        def callback_click(event):
+            """Gestisce il click del mouse durante la calibrazione."""
+            calibration_manager = cache.get('calibration_manager')
+            if calibration_manager and calibration_manager.calibration_active:
+                logging.info(f"Click ricevuto in calibrazione: ({event.x}, {event.y})")
+                calibration_manager.handle_click(event.x, event.y, cache)
+            else:
+                logging.debug(f"Click ignorato (non in modalità calibrazione): ({event.x}, {event.y})")
+
         root = tk.Tk()
         root.overrideredirect(True)
         root.geometry(
@@ -354,6 +387,7 @@ if __name__ == "__main__":
         )
         root.resizable(False, False)
         lmain = tk.Label(root)
+        lmain.bind("<Button-1>", callback_click)  # Bind click sinistro
         lmain.pack()
 
         show_frame(cache, lmain)

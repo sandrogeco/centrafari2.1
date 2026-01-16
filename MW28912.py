@@ -371,25 +371,15 @@ if __name__ == "__main__":
             set_camera(indice_camera, cache['config'])
             time.sleep(1)
 
-        # Callback per il click del mouse (modalità calibrazione)
+        # Callback per il click del mouse (modalità calibrazione e pulsante touch)
         def callback_click(event):
-            """Gestisce il click del mouse durante la calibrazione."""
+            """Gestisce il click del mouse/touch durante la calibrazione."""
             calibration_manager = cache.get('calibration_manager')
             if calibration_manager and calibration_manager.calibration_active:
                 logging.info(f"Click ricevuto in calibrazione: ({event.x}, {event.y})")
                 calibration_manager.handle_click(event.x, event.y, cache)
             else:
                 logging.debug(f"Click ignorato (non in modalità calibrazione): ({event.x}, {event.y})")
-
-        # Callback per tasto ESC (termina calibrazione)
-        def callback_escape(event):
-            """Gestisce la pressione del tasto ESC per terminare la calibrazione."""
-            calibration_manager = cache.get('calibration_manager')
-            if calibration_manager and calibration_manager.calibration_active:
-                logging.info("Tasto ESC premuto: termino calibrazione")
-                calibration_manager.stop_calibration()
-            else:
-                logging.debug("Tasto ESC ignorato (non in modalità calibrazione)")
 
         root = tk.Tk()
         root.overrideredirect(True)
@@ -399,8 +389,7 @@ if __name__ == "__main__":
         )
         root.resizable(False, False)
         lmain = tk.Label(root)
-        lmain.bind("<Button-1>", callback_click)  # Bind click sinistro
-        root.bind("<Escape>", callback_escape)    # Bind tasto ESC
+        lmain.bind("<Button-1>", callback_click)  # Bind click sinistro/touch
         lmain.pack()
 
         show_frame(cache, lmain)

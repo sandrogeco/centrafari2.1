@@ -39,6 +39,9 @@ class CalibrationManager:
         self.step_data = {}
         self.calibration_active = False
 
+        # Area pulsante "TERMINA CALIBRAZIONE" (x, y, w, h)
+        self.exit_button_rect = None
+
     def start_calibration(self):
         """
         Avvia la procedura di calibrazione.
@@ -129,10 +132,34 @@ class CalibrationManager:
             cv2.putText(image_output, "confermare e terminare", (5, 60),
                        cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, get_colore('green'), 1)
 
-        # Istruzioni per uscita (sempre visibili)
+        # Pulsante "TERMINA CALIBRAZIONE" in basso a destra
+        width = cache['config'].get('width', 630)
         height = cache['config'].get('height', 320)
-        cv2.putText(image_output, "Premi ESC per terminare calibrazione", (5, height - 10),
-                   cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, get_colore('yellow'), 1)
+
+        btn_w = 200
+        btn_h = 40
+        btn_x = width - btn_w - 10
+        btn_y = height - btn_h - 10
+
+        # Salva area pulsante per rilevamento click
+        self.exit_button_rect = (btn_x, btn_y, btn_w, btn_h)
+
+        # Disegna rettangolo pulsante (rosso)
+        cv2.rectangle(image_output, (btn_x, btn_y), (btn_x + btn_w, btn_y + btn_h),
+                     get_colore('red'), -1)
+        cv2.rectangle(image_output, (btn_x, btn_y), (btn_x + btn_w, btn_y + btn_h),
+                     get_colore('white'), 2)
+
+        # Testo "TERMINA" centrato nel pulsante
+        text = "TERMINA"
+        font_scale = 1.0
+        thickness = 2
+        text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)[0]
+        text_x = btn_x + (btn_w - text_size[0]) // 2
+        text_y = btn_y + (btn_h + text_size[1]) // 2
+
+        cv2.putText(image_output, text, (text_x, text_y),
+                   cv2.FONT_HERSHEY_SIMPLEX, font_scale, get_colore('white'), thickness)
 
         return image_output
 
@@ -173,6 +200,14 @@ class CalibrationManager:
             True se lo step è completato, False altrimenti
         """
         logging.info(f"Step 1 - Click ricevuto: ({x}, {y})")
+
+        # Verifica se il click è sul pulsante TERMINA
+        if self.exit_button_rect:
+            btn_x, btn_y, btn_w, btn_h = self.exit_button_rect
+            if btn_x <= x <= btn_x + btn_w and btn_y <= y <= btn_y + btn_h:
+                logging.info("Click sul pulsante TERMINA: esco dalla calibrazione")
+                self.stop_calibration()
+                return True
 
         # Primo click: imposta crop_center
         if not self.step_data.get('crop_center'):

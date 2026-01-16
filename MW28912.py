@@ -349,9 +349,11 @@ if __name__ == "__main__":
         "AUTOEXP": config.get("AUTOEXP") or False,
         "config": config,
         "stato_comunicazione": {},
-        "queue": Queue(),
-        "calibration_manager": CalibrationManager(percorso_script)
+        "queue": Queue()
     }
+
+    # Inizializza calibration_manager DOPO cache (ha bisogno di cache)
+    cache["calibration_manager"] = CalibrationManager(percorso_script, cache)
 
     #Avvia thread di comunicazione 
     if cache['COMM']:
@@ -379,6 +381,16 @@ if __name__ == "__main__":
             else:
                 logging.debug(f"Click ignorato (non in modalità calibrazione): ({event.x}, {event.y})")
 
+        # Callback per tasto ESC (termina calibrazione)
+        def callback_escape(event):
+            """Gestisce la pressione del tasto ESC per terminare la calibrazione."""
+            calibration_manager = cache.get('calibration_manager')
+            if calibration_manager and calibration_manager.calibration_active:
+                logging.info("Tasto ESC premuto: termino calibrazione")
+                calibration_manager.stop_calibration()
+            else:
+                logging.debug("Tasto ESC ignorato (non in modalità calibrazione)")
+
         root = tk.Tk()
         root.overrideredirect(True)
         root.geometry(
@@ -388,6 +400,7 @@ if __name__ == "__main__":
         root.resizable(False, False)
         lmain = tk.Label(root)
         lmain.bind("<Button-1>", callback_click)  # Bind click sinistro
+        root.bind("<Escape>", callback_escape)    # Bind tasto ESC
         lmain.pack()
 
         show_frame(cache, lmain)

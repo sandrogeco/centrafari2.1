@@ -21,16 +21,18 @@ class CalibrationManager:
     - Step 2+: Futuri step (da aggiungere)
     """
 
-    def __init__(self, config_path):
+    def __init__(self, config_path, cache):
         """
         Inizializza il gestore di calibrazione.
 
         Args:
             config_path: Path alla directory contenente i file di configurazione
+            cache: Dizionario cache condiviso con MW28912
         """
         self.config_path = config_path
         self.default_file = os.path.join(config_path, "default.json")
         self.config_file = os.path.join(config_path, "config.json")
+        self.cache = cache
 
         # Stato calibrazione
         self.current_step = 0
@@ -67,6 +69,13 @@ class CalibrationManager:
         self.calibration_active = False
         self.current_step = 0
         self.step_data = {}
+
+        # Rimuovi "calibrazione" da tipo_faro per uscire dalla modalità
+        if 'tipo_faro' in self.cache['stato_comunicazione']:
+            if self.cache['stato_comunicazione']['tipo_faro'] == 'calibrazione':
+                # Ripristina a anabbagliante (default)
+                self.cache['stato_comunicazione']['tipo_faro'] = 'anabbagliante'
+                logging.info("tipo_faro ripristinato a 'anabbagliante'")
 
     def process_frame(self, image_output, cache):
         """
@@ -119,6 +128,11 @@ class CalibrationManager:
                        cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, get_colore('green'), 1)
             cv2.putText(image_output, "confermare e terminare", (5, 60),
                        cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, get_colore('green'), 1)
+
+        # Istruzioni per uscita (sempre visibili)
+        height = cache['config'].get('height', 320)
+        cv2.putText(image_output, "Premi ESC per terminare calibrazione", (5, height - 10),
+                   cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, get_colore('yellow'), 1)
 
         return image_output
 

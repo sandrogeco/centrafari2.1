@@ -132,7 +132,8 @@ class CalibrationManager:
         state = self.step_data.get('state', 0)
         crop_center = self.step_data.get('crop_center')
 
-        # Disegna cerchio blu sul crop_center se già impostato (stato 1)
+        # Disegna cerchio blu sul crop_center SOLO in stato 1
+        # (stato 0: non ancora cliccato, stato 2+: terminato)
         if state == 1 and crop_center:
             cv2.circle(image_output, crop_center, 5, (255, 0, 0), 2)
             cv2.circle(image_output, crop_center, 10, (255, 0, 0), 1)
@@ -240,9 +241,24 @@ class CalibrationManager:
             self.step_data['crop_center'] = (x, y)
             self.cache['config']['crop_center'] = [x, y]
 
+            # Salva config.json immediatamente
+            try:
+                with open(self.config_file, 'w') as f:
+                    json.dump(self.cache['config'], f, indent=4)
+                logging.info("Config.json salvato (stato 0->1)")
+            except Exception as e:
+                logging.error(f"Errore nel salvare config.json: {e}")
+
+            # Ricarica config.json in cache
+            init_config = self.cache.get('init_config')
+            if init_config:
+                init_config("config.json")
+                logging.info("Configurazione ricaricata da config.json")
+
             # Vai a stato 1
             self.step_data['state'] = 1
-            logging.info(f"Stato 0->1: crop_center={x},{y} salvato in cache")
+            self.step_data['crop_center'] = tuple(self.cache['config']['crop_center'])  # Aggiorna da cache ricaricata
+            logging.info(f"Stato 0->1: crop_center={x},{y} salvato e ricaricato")
             return False
 
         # STATO 1: Secondo click per conferma
@@ -255,9 +271,15 @@ class CalibrationManager:
             try:
                 with open(self.config_file, 'w') as f:
                     json.dump(self.cache['config'], f, indent=4)
-                logging.info("Config.json salvato con successo")
+                logging.info("Config.json salvato (stato 1->2)")
             except Exception as e:
                 logging.error(f"Errore nel salvare config.json: {e}")
+
+            # Ricarica config.json in cache
+            init_config = self.cache.get('init_config')
+            if init_config:
+                init_config("config.json")
+                logging.info("Configurazione ricaricata da config.json")
 
             # Termina calibrazione
             self.stop_calibration()

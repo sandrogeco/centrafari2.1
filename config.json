@@ -22,8 +22,8 @@
     "cam_c": 0,
     "port": 28500,
     "crop_center": [
-        325,
-        237
+        305,
+        134
     ],
     "margin_r": 0.1,
     "margin_l": 0.1,

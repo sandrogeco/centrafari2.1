@@ -1,21 +1,95 @@
 {
-  // Use IntelliSense to learn about possible attributes.
-  // Hover to view descriptions of existing attributes.
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Python Debugger: Current File with Arguments",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${file}",
-      "console": "integratedTerminal",
-      "args": "${command:pickArgs}",
-      "python": "${command:python.interpreterPath}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}"
-      },
-      "justMyCode": false
-    }
-  ]
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "MW28912 GUI (Main)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/MW28912.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "DISPLAY": ":0"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "MW28912 CLI",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/MW28912_cli.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "Emulatore Proteus",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/emulatore_proteus.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "Debug Detection",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/debug_detection.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "DISPLAY": ":0"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "Centra Telecamera",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/MW28912_centra_telecamera.py",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "DISPLAY": ":0"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "File corrente",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "DISPLAY": ":0"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "File corrente (con argomenti)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "${command:pickArgs}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "DISPLAY": ":0"
+            },
+            "justMyCode": false
+        }
+    ],
+    "compounds": [
+        {
+            "name": "GUI + Emulatore",
+            "configurations": ["MW28912 GUI (Main)", "Emulatore Proteus"],
+            "stopAll": true
+        }
+    ]
 }

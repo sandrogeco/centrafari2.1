@@ -1,12 +1,68 @@
 {
-    "python-envs.defaultEnvManager": "ms-python.python:system",
-    "python-envs.pythonProjects": [],
-    "python.defaultInterpreterPath": "/usr/local/python/current/bin/python3",
+    // Python interpreter - usa quello di sistema o venv se presente
+    "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
     "python.terminal.activateEnvironment": true,
+
+    // Analisi e IntelliSense
     "python.analysis.extraPaths": [
         "${workspaceFolder}"
     ],
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true,
+
+    // Linting
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.linting.flake8Args": [
+        "--max-line-length=120",
+        "--ignore=E501,W503"
+    ],
+
+    // Formatting
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": [
+        "--line-length=120"
+    ],
+    "editor.formatOnSave": false,
+
+    // File associations
+    "files.associations": {
+        "*.json": "jsonc"
+    },
+
+    // Esclusioni dal file explorer
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        ".git": true,
+        "**/*.egg-info": true
+    },
+
+    // Ricerca - esclusioni
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/venv": true,
+        "**/.git": true
+    },
+
+    // Terminal
     "terminal.integrated.env.linux": {
-        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${env:PATH}"
-    }
+        "PYTHONPATH": "${workspaceFolder}",
+        "DISPLAY": ":0"
+    },
+
+    // Editor
+    "editor.rulers": [120],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+
+    // Python testing
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": [
+        "${workspaceFolder}"
+    ]
 }

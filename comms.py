@@ -2,6 +2,50 @@ import socket
 import logging
 
 
+# =============================================================================
+# FORMATO MESSAGGI
+# Se True usa nuovo formato: "x 123; y 456; lux 0.50; ..."
+# Se False usa vecchio formato: "XYL 123 456 0.50 ..."
+# =============================================================================
+USE_NEW_FORMAT = True
+
+
+def encode_response(p):
+    """
+    Codifica i dati di risposta in stringa.
+
+    Args:
+        p: Dict con i parametri da inviare
+           (posiz_pattern_x, posiz_pattern_y, lux, roll, yaw, pitch, left, right, up, down)
+
+    Returns:
+        Stringa formattata secondo USE_NEW_FORMAT
+    """
+    if USE_NEW_FORMAT:
+        # Nuovo formato: parametro valore; parametro2 valore2; ...
+        # Nomi abbreviati: posiz_pattern_x -> x, posiz_pattern_y -> y
+        msg = (
+            f"x {int(p['posiz_pattern_x'])}; "
+            f"y {int(p['posiz_pattern_y'])}; "
+            f"lux {p['lux']:.2f}; "
+            f"roll {p['roll']:.2f}; "
+            f"yaw {p['yaw']:.2f}; "
+            f"pitch {p['pitch']:.2f}; "
+            f"left {p['left']}; "
+            f"right {p['right']}; "
+            f"up {p['up']}; "
+            f"down {p['down']};"
+        )
+    else:
+        # Vecchio formato: XYL x y lux roll yaw pitch left right up down
+        msg = (
+            f"XYL {int(p['posiz_pattern_x'])} {int(p['posiz_pattern_y'])} "
+            f"{p['lux']:.2f} {p['roll']:.2f} {p['yaw']:.2f} {p['pitch']:.2f} "
+            f"{p['left']} {p['right']} {p['up']} {p['down']} "
+        )
+    return msg
+
+
 def decode_cmd(resp):
     stato_comunicazione = {}
     if resp.startswith("CFG->"):
@@ -55,7 +99,7 @@ def thread_comunicazione(port, cache):
                 if p is None:
                     p = cache['queue'].get(timeout=0.3)
 
-                msg = f"XYL {int(p['posiz_pattern_x'])} {int(p['posiz_pattern_y'])} {p['lux']:.2f} {p['roll']:.2f} {p['yaw']:.2f} {p['pitch']:.2f} {p['left']} {p['right']} {p['up']} {p['down']} "
+                msg = encode_response(p)
             except:
                 msg = "idle "
             

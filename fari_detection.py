@@ -137,7 +137,7 @@ def calculate_angles(X0: float, Y0: float, mo: float, cache: dict) -> Tuple[floa
         qin = float(cache['stato_comunicazione'].get('qin', config.get('qin', 1)))
 
         dx = (X0 - cache['config']['width'] / 2) / qin
-        dy = (Y0 - cache['config']['height'] / 2 + float(cache['stato_comunicazione']['inclinazione'])) / qin
+        dy = (Y0 - cache['config']['height'] / 2 + float(cache['stato_comunicazione']['incl'])) / qin
         yaw_deg = np.degrees(np.arctan2(dx, 25))
         pitch_deg = np.degrees(np.arctan2(dy, 25))
         roll_deg = np.degrees(np.arctan(mo))
@@ -441,7 +441,7 @@ def detect_abbagliante(image_input: np.ndarray,
     # Calcola angoli
     try:
         dx = (x_cms - cache['config']['width'] / 2) / cache['stato_comunicazione']['qin']
-        dy = (y_cms - cache['config']['height'] / 2 + cache['stato_comunicazione']['inclinazione']) / cache['stato_comunicazione']['qin']
+        dy = (y_cms - cache['config']['height'] / 2 + cache['stato_comunicazione']['incl']) / cache['stato_comunicazione']['qin']
         yaw_deg = np.degrees(np.arctan2(dx, 25))
         pitch_deg = np.degrees(np.arctan2(dy, 25))
         roll_deg = 0

@@ -7,7 +7,7 @@
     "height": 320,
     "window_shift_x": 278,
     "window_shift_y": 130,
-    "crop_w": 315,
+    "crop_w": 630,
     "crop_h": 320,
     "brightness": 0,
     "contrast": 100,
@@ -22,8 +22,8 @@
     "cam_c": 0,
     "port": 28500,
     "crop_center": [
-        305,
-        134
+        314,
+        220
     ],
     "margin_r": 0.1,
     "margin_l": 0.1,

@@ -52,7 +52,7 @@ def decode_cmd(resp):
         stato_comunicazione['pattern'] = int(resp[5])
         stato_comunicazione['croce'] = int(resp[6])
         stato_comunicazione['TOV'] = int(resp[10:13])
-        stato_comunicazione['inclinazione'] = int(resp[27:31])
+        stato_comunicazione['incl'] = int(resp[27:31])
         stato_comunicazione['TOH'] = int(resp[34:37])
         stato_comunicazione['qin'] = float(resp[40:45])
 
@@ -61,7 +61,7 @@ def decode_cmd(resp):
 def decode_cmd1(resp, commands):
     """
     Decodifica comandi con formato: parametro valore; parametro2 valore2;
-    Esempio: croce 1; run 0; tipo_faro anabbagliante; inclinazione 00000;
+    Esempio: croce 1; run 0; tipo_faro anabbagliante; incl 00000;
     """
     # Splitta per punto e virgola per ottenere ogni comando
     parts = resp.split(';')

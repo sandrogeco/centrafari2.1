@@ -3,7 +3,7 @@
 Script di test per verificare TOH/TOV da comunicazione.
 
 Esempio di risposta dal server:
-"croce 1; run 1; tipo_faro anabbagliante; TOH 30; TOV 20; inclinazione 5;"
+"croce 1; run 1; tipo_faro anabbagliante; TOH 30; TOV 20; incl 5;"
 """
 
 import sys
@@ -20,7 +20,7 @@ print()
 server_responses = [
     "croce 1; run 1; tipo_faro anabbagliante;",  # Senza TOH/TOV
     "croce 1; run 1; tipo_faro anabbagliante; TOH 30; TOV 20;",  # Con TOH/TOV
-    "croce 1; run 1; tipo_faro fendinebbia; TOH 50; TOV 10; inclinazione 5;",  # TOH/TOV + inclinazione
+    "croce 1; run 1; tipo_faro fendinebbia; TOH 50; TOV 10; incl 5;",  # TOH/TOV + incl
 ]
 
 for i, resp in enumerate(server_responses, 1):
@@ -79,7 +79,7 @@ print("   1. Valore da comunicazione (se presente)")
 print("   2. Valore da config.json (fallback)")
 print()
 print("✅ Esempio comando completo:")
-print("   'croce 1; run 1; tipo_faro anabbagliante; TOH 30; TOV 20; inclinazione 5;'")
+print("   'croce 1; run 1; tipo_faro anabbagliante; TOH 30; TOV 20; incl 5;'")
 print()
 print("✅ I valori da comunicazione permettono aggiustamenti real-time")
 print("   senza modificare config.json")

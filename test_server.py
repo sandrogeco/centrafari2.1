@@ -20,12 +20,12 @@ def create_response():
     Esempio: croce 1; run 0; tipo_faro anabbagliante;
     """
     croce = '1'
-    inclinazione = '00000'
+    incl = '00000'
     run = '1'
     tipo_faro = 'anabbagliante'  # anabbagliante, abbagliante, fendinebbia
 
     # Nuovo formato con lunghezza automatica
-    response = f"croce {croce}; inclinazione {inclinazione}; run {run}; tipo_faro {tipo_faro};"
+    response = f"croce {croce}; incl {incl}; run {run}; tipo_faro {tipo_faro};"
     return response
 
 def main():

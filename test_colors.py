@@ -21,7 +21,7 @@ cache = {
         'TOV': 10
     },
     'stato_comunicazione': {
-        'inclinazione': 0
+        'incl': 0
     }
 }
 

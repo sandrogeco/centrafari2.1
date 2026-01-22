@@ -111,18 +111,18 @@ def rileva_punto_angoloso(image_input, image_output, cache):
         pass
 
     disegna_linea_angolo(image_output,(int(cache['config']['width'] / 2),
-                                        int(cache['config']['height'] / 2)+cache['stato_comunicazione'].get('inclinazione', 0)
+                                        int(cache['config']['height'] / 2)+cache['stato_comunicazione'].get('incl', 0)
                                         -cache['stato_comunicazione'].get('TOH', 50)),15,1,'green')
 
     disegna_linea_angolo(image_output, (int(cache['config']['width'] / 2),
-                                         int(cache['config']['height'] / 2) +cache['stato_comunicazione'].get('inclinazione', 0)
+                                         int(cache['config']['height'] / 2) +cache['stato_comunicazione'].get('incl', 0)
                                          + cache['stato_comunicazione'].get('TOH',50)), 15,1, 'green')
 
     disegna_linea_angolo(image_output,(int(cache['config']['width'] / 2),
-                                        int(cache['config']['height'] / 2)+cache['stato_comunicazione'].get('inclinazione', 0)
+                                        int(cache['config']['height'] / 2)+cache['stato_comunicazione'].get('incl', 0)
                                         -cache['stato_comunicazione'].get('TOH', 50)),180,1,'green')
     disegna_linea_angolo(image_output, (int(cache['config']['width'] / 2),
-                                         int(cache['config']['height'] / 2) +cache['stato_comunicazione'].get('inclinazione', 0)
+                                         int(cache['config']['height'] / 2) +cache['stato_comunicazione'].get('incl', 0)
                                          + cache['stato_comunicazione'].get('TOH',50)), 180,1, 'green')
     if 'numero_medie_punto' in cache['config']:
         cache['lista_ultimi_punti'] = cache.get('lista_ultimi_punti', []) + [punto_finale]
@@ -255,18 +255,18 @@ def rileva_punto_angoloso1(image_input, image_output, cache):
         pass
 
     disegna_linea_angolo(image_output,(int(cache['config']['width'] / 2),
-                                        int(cache['config']['height'] / 2)+cache['stato_comunicazione'].get('inclinazione', 0)
+                                        int(cache['config']['height'] / 2)+cache['stato_comunicazione'].get('incl', 0)
                                         -cache['stato_comunicazione'].get('TOH', 50)),15,1,'green')
 
     disegna_linea_angolo(image_output, (int(cache['config']['width'] / 2),
-                                         int(cache['config']['height'] / 2) +cache['stato_comunicazione'].get('inclinazione', 0)
+                                         int(cache['config']['height'] / 2) +cache['stato_comunicazione'].get('incl', 0)
                                          + cache['stato_comunicazione'].get('TOH',50)), 15,1, 'green')
 
     disegna_linea_angolo(image_output,(int(cache['config']['width'] / 2),
-                                        int(cache['config']['height'] / 2)+cache['stato_comunicazione'].get('inclinazione', 0)
+                                        int(cache['config']['height'] / 2)+cache['stato_comunicazione'].get('incl', 0)
                                         -cache['stato_comunicazione'].get('TOH', 50)),180,1,'green')
     disegna_linea_angolo(image_output, (int(cache['config']['width'] / 2),
-                                         int(cache['config']['height'] / 2) +cache['stato_comunicazione'].get('inclinazione', 0)
+                                         int(cache['config']['height'] / 2) +cache['stato_comunicazione'].get('incl', 0)
                                          + cache['stato_comunicazione'].get('TOH',50)), 180,1, 'green')
     if 'numero_medie_punto' in cache['config']:
         cache['lista_ultimi_punti'] = cache.get('lista_ultimi_punti', []) + [punto_finale]

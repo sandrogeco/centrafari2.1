@@ -19,7 +19,7 @@ with open('/home/user/centrafari/config.json', 'r') as f:
 cache = {
     'config': config,
     'stato_comunicazione': {
-        'inclinazione': 0,
+        'incl': 0,
         'tipo_faro': 'anabbagliante'
     },
     'autoexp_ok': True

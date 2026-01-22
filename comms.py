@@ -1,4 +1,10 @@
+"""
+Modulo comunicazione MW28912.
+Gestisce connessione persistente con invio continuo dati e ricezione asincrona.
+"""
+
 import socket
+import select
 import logging
 
 
@@ -23,7 +29,6 @@ def encode_response(p):
     """
     if USE_NEW_FORMAT:
         # Nuovo formato: parametro valore; parametro2 valore2; ...
-        # Nomi abbreviati: posiz_pattern_x -> x, posiz_pattern_y -> y
         msg = (
             f"x {int(p['posiz_pattern_x'])}; "
             f"y {int(p['posiz_pattern_y'])}; "
@@ -47,6 +52,7 @@ def encode_response(p):
 
 
 def decode_cmd(resp):
+    """Decodifica vecchio formato CFG->..."""
     stato_comunicazione = {}
     if resp.startswith("CFG->"):
         stato_comunicazione['pattern'] = int(resp[5])
@@ -55,66 +61,103 @@ def decode_cmd(resp):
         stato_comunicazione['incl'] = int(resp[27:31])
         stato_comunicazione['TOH'] = int(resp[34:37])
         stato_comunicazione['qin'] = float(resp[40:45])
-
     return stato_comunicazione
+
 
 def decode_cmd1(resp, commands):
     """
     Decodifica comandi con formato: parametro valore; parametro2 valore2;
     Esempio: croce 1; run 0; tipo_faro anabbagliante; incl 00000;
     """
-    # Splitta per punto e virgola per ottenere ogni comando
     parts = resp.split(';')
-
     for part in parts:
         part = part.strip()
         if not part:
             continue
-
-        # Splitta per spazio: primo elemento è parametro, resto è valore
         tokens = part.split(' ', 1)
         if len(tokens) == 2:
             parametro = tokens[0].strip()
             valore = tokens[1].strip()
             commands[parametro] = valore
 
+
 def thread_comunicazione(port, cache):
-    first_run = True
+    """
+    Thread di comunicazione con connessione persistente.
+
+    - Mantiene connessione aperta
+    - Manda dati punto in continuo (dalla coda)
+    - Riceve e decodifica comandi quando arrivano (non bloccante)
+    """
+    conn = None
+    last_data = None  # Ultimo dato valido per reinvio
 
     while True:
-        if first_run:
-            msg = "start_cfg "
-            first_run = False
-        else:
+        # === CONNESSIONE ===
+        # Se non connesso, prova a connettersi
+        if conn is None:
             try:
-                # Svuota la coda e prendi solo l'ULTIMO valore (il più recente)
-                p = None
-                while True:
-                    try:
-                        p = cache['queue'].get_nowait()
-                    except:
-                        break
+                conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                conn.connect((cache['config'].get('ip', "localhost"), port))
+                conn.setblocking(False)  # Non-bloccante dopo connessione
+                logging.info(f"Connesso a {cache['config'].get('ip')}:{port}")
 
-                # Se non c'era nulla nella coda, aspetta
-                if p is None:
-                    p = cache['queue'].get(timeout=0.3)
+                # Manda start_cfg alla connessione
+                conn.sendall(b"start_cfg ")
 
-                msg = encode_response(p)
-            except:
-                msg = "idle "
-            
+            except Exception as e:
+                logging.error(f"Connessione fallita: {e}")
+                conn = None
+                import time
+                time.sleep(1)  # Attendi prima di riprovare
+                continue
+
+        # === INVIO DATI (non bloccante) ===
         try:
-            conn = socket.socket()
-            conn.connect((cache['config'].get('ip',"localhost"), port))
+            # Svuota coda e prendi ultimo valore
+            while True:
+                try:
+                    last_data = cache['queue'].get_nowait()
+                except:
+                    break
+
+            # Manda ultimo dato (o idle se nessun dato)
+            if last_data:
+                msg = encode_response(last_data)
+            else:
+                msg = "idle "
+
             conn.sendall(msg.encode())
-            data = conn.recv(1024).decode("UTF-8")
-           # cache['stato_comunicazione'].update(decode_cmd1(data))
-            decode_cmd1(data,cache['stato_comunicazione'])
-            print(cache['stato_comunicazione'])
-        except Exception as e:
-            logging.error(f"thread_comunicazione: error: {e}")
+            logging.debug(f"[TX] {msg}")
+
+        except (BrokenPipeError, ConnectionResetError, OSError) as e:
+            logging.error(f"Errore invio: {e}")
+            conn.close()
+            conn = None
             continue
 
-        logging.debug(f"[TX] {msg}")
-        logging.debug(f"[RX] {data}")
+        # === RICEZIONE DATI (non bloccante con select) ===
+        try:
+            # Controlla se ci sono dati da leggere (timeout 10ms)
+            ready, _, _ = select.select([conn], [], [], 0.01)
 
+            if ready:
+                data = conn.recv(1024).decode("UTF-8")
+                if data:
+                    logging.debug(f"[RX] {data}")
+                    decode_cmd1(data, cache['stato_comunicazione'])
+                else:
+                    # Connessione chiusa dal server
+                    logging.warning("Connessione chiusa dal server")
+                    conn.close()
+                    conn = None
+                    continue
+
+        except (BlockingIOError, socket.error):
+            # Nessun dato disponibile, continua
+            pass
+        except Exception as e:
+            logging.error(f"Errore ricezione: {e}")
+            conn.close()
+            conn = None
+            continue

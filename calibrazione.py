@@ -13,6 +13,7 @@ import json
 import os
 import logging
 from utils import get_colore
+import fari_detection
 
 
 # =============================================================================
@@ -34,7 +35,7 @@ STRINGS_IT = {
     # Istruzioni per ogni step (mostrate in basso)
     'step1_instruction': 'Spegnere faro',
     'step2_instruction': 'Accendere a inclinazione 0 e cliccare su punto centrale',
-    'step3_instruction': 'Portare a inclinazione 4% e cliccare su punto centrale',
+    'step3_instruction': 'Portare a inclinazione 4% e cliccare per confermare',
 
     # Pulsante termina
     'btn_terminate': 'TERMINA',
@@ -419,7 +420,7 @@ class CalibrationManager:
     def _handle_click_step3(self, x, y, cache):
         """
         Gestisce il click per lo step 3: inclinazione.
-        Placeholder - al click completa la calibrazione.
+        Rileva punto automaticamente e calcola coefficiente pixel/inclinazione.
 
         Args:
             x: Coordinata X del click
@@ -429,12 +430,52 @@ class CalibrationManager:
         Returns:
             True se la calibrazione e' terminata, False altrimenti
         """
-        logging.info(f"Step 3 (inclinazione) - Click ricevuto: ({x}, {y})")
+        logging.info(f"Step 3 (inclinazione) - Click ricevuto")
 
-        # TODO: Implementare logica calibrazione inclinazione
-        # Per ora: un click completa lo step e termina la calibrazione
+        # Usa il punto già rilevato da MW28912.py (su immagine preprocessata)
+        punto = cache.get('calibration_point')
+        if punto is None:
+            logging.error("Step 3: punto non rilevato, riprova")
+            return False
+
+        # Calcola coefficiente calibrazione: pixel = m * incl% + center
+        # Riferimento = centro immagine (height/2)
+        # Punto a 4%: pixel=punto.y
+        # m = (punto.y - center) / 4
+        width = cache['config'].get('width', 640)
+        height = cache['config'].get('height', 480)
+        center_x = width / 2
+        center_y = height / 2
+
+        # m = pendenza (pixel per 1% di inclinazione)
+        calib_m = (punto[1] - center_y) / 4.0
+
+        if abs(calib_m) < 0.1:
+            logging.error("Step 3: pendenza troppo piccola, riprova")
+            return False
+
+        logging.info(f"Step 3: punto=({punto[0]:.1f}, {punto[1]:.1f}), "
+                    f"centro=({center_x:.1f}, {center_y:.1f}), "
+                    f"calib_m={calib_m:.3f} px/%")
+
+        # Salva in config (solo m, q=center è implicito)
+        self.cache['config']['y_calib_m'] = calib_m
+
+        # Salva config.json
+        try:
+            with open(self.config_file, 'w') as f:
+                json.dump(self.cache['config'], f, indent=4)
+            logging.info(f"Calibrazione salvata: m={calib_m:.3f} px/%")
+        except Exception as e:
+            logging.error(f"Errore nel salvare config.json: {e}")
+
+        # Ricarica config
+        init_config = self.cache.get('init_config')
+        if init_config:
+            init_config("config.json")
+
         self._advance_to_next_step()
-        return not self.calibration_active  # True se calibrazione terminata
+        return not self.calibration_active
 
     # =========================================================================
     # GESTIONE CLICK

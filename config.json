@@ -22,8 +22,8 @@
     "cam_c": 0,
     "port": 28500,
     "crop_center": [
-        314,
-        220
+        323,
+        216
     ],
     "margin_r": 0.1,
     "margin_l": 0.1,
@@ -31,6 +31,5 @@
     "y_coeff_pixel_m": 1.375,
     "TOH": 10,
     "TOV": 10,
-    "comm_cycle_min_ms": 100,
-    "comm_timeout_ms": 500
+    "y_calib_m": -12.68579268757734
 }

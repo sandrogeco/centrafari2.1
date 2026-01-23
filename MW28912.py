@@ -158,16 +158,25 @@ def show_frame(cache, lmain):
         if not calibration_manager.calibration_active:
             calibration_manager.start_calibration()
 
-        # Usa image_view come output (senza detection)
-        image_output = image_view.copy()
+        # Step 3: esegui detection per mostrare punto e linee
+        if calibration_manager.current_step == 3:
+            results = fari_detection.detect_anabbagliante(
+                image_input, cache, 5, 40, 120, 1e-8, 1e-8, 1000
+            )
+            image_output = fari_detection.draw_results(image_view, results, cache)
+            point = results['punto']
+            angles = results['angoli']
+            # Salva punto per calibrazione (già su immagine preprocessata)
+            cache['calibration_point'] = point
+        else:
+            # Step 1-2: nessuna detection
+            image_output = image_view.copy()
+            point = None
+            angles = (0, 0, 0)
+            results = {'punto': None, 'angoli': (0, 0, 0), 'linee': [], 'contorni': []}
 
         # Applica overlay di calibrazione
         image_output = calibration_manager.process_frame(image_output, cache)
-
-        # Nessun punto/angoli durante calibrazione
-        point = None
-        angles = (0, 0, 0)
-        results = {'punto': None, 'angoli': (0, 0, 0), 'linee': [], 'contorni': []}
 
     # Modalità detection normale
     else:
@@ -228,7 +237,7 @@ def show_frame(cache, lmain):
     if stato_comunicazione.get('croce', '0') == '1':
         center_x = int(config['width'] / 2)
         center_y = int(config['height'] / 2)
-        inclinazione = int(stato_comunicazione.get('incl', '0'))
+        inclinazione = int(stato_comunicazione.get('incl', 0))
 
         if tipo_faro == 'fendinebbia':
             # Linee orizzontali per fendinebbia

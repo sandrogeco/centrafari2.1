@@ -16,37 +16,96 @@ import logging
 USE_NEW_FORMAT = True
 
 
-def encode_response(p):
+def encode_response(p, cache=None):
     """
     Codifica i dati di risposta in stringa.
+    Applica calibrazione e conversione unità di misura.
 
     Args:
         p: Dict con i parametri da inviare
            (posiz_pattern_x, posiz_pattern_y, lux, roll, yaw, pitch, left, right, up, down)
+        cache: Cache con config e stato_comunicazione (per calibrazione e UM)
 
     Returns:
         Stringa formattata secondo USE_NEW_FORMAT
     """
+    # Estrai valori pixel
+    pixel_x = p['posiz_pattern_x']
+    pixel_y = p['posiz_pattern_y']
+    lux = p['lux']
+
+    # Default: output in pixel
+    out_x = pixel_x
+    out_y = pixel_y
+    out_lux = lux
+
+    # Applica calibrazione e conversione UM se cache disponibile
+    if cache:
+        config = cache.get('config', {})
+        stato = cache.get('stato_comunicazione', {})
+
+        # Calibrazione: pixel -> percentuale
+        # Riferimento = centro immagine + inclinazione richiesta
+        calib_m = config.get('y_calib_m', 1.0)
+        width = config.get('width', 640)
+        height = config.get('height', 480)
+        center_x = width / 2
+        center_y = height / 2
+
+        # incl già convertito in pixel nel thread
+        incl_pixel = int(stato.get('incl', 0))
+
+        # Calcola percentuale rispetto a centro + inclinazione
+        if abs(calib_m) > 0.01:
+            perc_x = (pixel_x - center_x) / calib_m
+            perc_y = (pixel_y - (center_y + incl_pixel)) / calib_m
+        else:
+            perc_x = pixel_x
+            perc_y = pixel_y
+
+        # UMI: unità misura inclinazione (0=cm, 1=inches, 2=%)
+        umi = int(stato.get('UMI', 2))
+        if umi == 0:  # cm
+            out_x = perc_x * 10
+            out_y = perc_y * 10
+        elif umi == 1:  # inches
+            out_x = perc_x * 10 * 0.3937
+            out_y = perc_y * 10 * 0.3937
+        else:  # 2 = percentuale
+            out_x = perc_x
+            out_y = perc_y
+
+        # UMH: unità misura altezza (0=mm, 1=cm, 2=inches) - non usata per ora
+        umh = int(stato.get('UMH', 0))
+        # TODO: applicare se necessario
+
+        # UMB: unità misura luminosità (0=lux/25m, 1=Kcandles/1m, 2=KLux/1m)
+        umb = int(stato.get('UMB', 0))
+        if umb == 0:  # lux/25m (default, nessuna conversione)
+            out_lux = lux
+        elif umb == 1:  # Kcandles/1m
+            out_lux = lux * 0.001  # TODO: verificare conversione
+        elif umb == 2:  # KLux/1m
+            out_lux = lux * 0.001  # TODO: verificare conversione
+
     if USE_NEW_FORMAT:
-        # Nuovo formato: parametro valore; parametro2 valore2; ...
         msg = (
-            f"x {int(p['posiz_pattern_x'])}; "
-            f"y {int(p['posiz_pattern_y'])}; "
-            f"lux {p['lux']:.2f}; "
+            f"x {out_x:.2f}; "
+            f"y {out_y:.2f}; "
+            f"lux {out_lux:.2f}; "
             f"roll {p['roll']:.2f}; "
             f"yaw {p['yaw']:.2f}; "
             f"pitch {p['pitch']:.2f}; "
             f"left {p['left']}; "
             f"right {p['right']}; "
             f"up {p['up']}; "
-            f"down {p['down']};"
+            f"down {p['down']};\n"
         )
     else:
-        # Vecchio formato: XYL x y lux roll yaw pitch left right up down
         msg = (
-            f"XYL {int(p['posiz_pattern_x'])} {int(p['posiz_pattern_y'])} "
-            f"{p['lux']:.2f} {p['roll']:.2f} {p['yaw']:.2f} {p['pitch']:.2f} "
-            f"{p['left']} {p['right']} {p['up']} {p['down']} "
+            f"XYL {out_x:.2f} {out_y:.2f} "
+            f"{out_lux:.2f} {p['roll']:.2f} {p['yaw']:.2f} {p['pitch']:.2f} "
+            f"{p['left']} {p['right']} {p['up']} {p['down']}\n"
         )
     return msg
 
@@ -130,7 +189,7 @@ def thread_comunicazione(port, cache):
 
             # Manda ultimo dato (o idle se nessun dato)
             if last_data:
-                msg = encode_response(last_data)
+                msg = encode_response(last_data, cache)
             else:
                 msg = "idle "
 
@@ -154,6 +213,11 @@ def thread_comunicazione(port, cache):
                 if data:
                     logging.debug(f"[RX] {data}")
                     decode_cmd1(data, cache['stato_comunicazione'])
+                    # Converti incl da % a pixel
+                    if 'incl' in cache['stato_comunicazione']:
+                        incl_percent = float(cache['stato_comunicazione']['incl'])
+                        calib_m = cache['config'].get('y_calib_m', 1.0)
+                        cache['stato_comunicazione']['incl'] = int(incl_percent * calib_m)
                 else:
                     logging.warning("Connessione chiusa dal server")
                     conn.close()

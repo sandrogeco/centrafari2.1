@@ -107,7 +107,8 @@ def encode_response(p, cache=None):
             f"{out_lux:.2f} {p['roll']:.2f} {p['yaw']:.2f} {p['pitch']:.2f} "
             f"{p['left']} {p['right']} {p['up']} {p['down']}\n"
         )
-    return msg
+    # Tronca a 278 byte
+    return msg[:278]
 
 
 def decode_cmd(resp):

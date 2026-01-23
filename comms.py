@@ -1,13 +1,11 @@
 """
 Modulo comunicazione MW28912.
-Due thread indipendenti:
-    - RX (porta 25800): riceve comandi
-    - TX (porta 28501): trasmette dati punto
+Gestisce connessione persistente con invio continuo dati e ricezione asincrona.
 """
 
 import socket
+import select
 import logging
-import time
 
 
 # =============================================================================
@@ -24,11 +22,13 @@ def encode_response(p):
 
     Args:
         p: Dict con i parametri da inviare
+           (posiz_pattern_x, posiz_pattern_y, lux, roll, yaw, pitch, left, right, up, down)
 
     Returns:
         Stringa formattata secondo USE_NEW_FORMAT
     """
     if USE_NEW_FORMAT:
+        # Nuovo formato: parametro valore; parametro2 valore2; ...
         msg = (
             f"x {int(p['posiz_pattern_x'])}; "
             f"y {int(p['posiz_pattern_y'])}; "
@@ -42,6 +42,7 @@ def encode_response(p):
             f"down {p['down']};"
         )
     else:
+        # Vecchio formato: XYL x y lux roll yaw pitch left right up down
         msg = (
             f"XYL {int(p['posiz_pattern_x'])} {int(p['posiz_pattern_y'])} "
             f"{p['lux']:.2f} {p['roll']:.2f} {p['yaw']:.2f} {p['pitch']:.2f} "
@@ -80,104 +81,47 @@ def decode_cmd1(resp, commands):
             commands[parametro] = valore
 
 
-# =============================================================================
-# THREAD RX - Riceve comandi sulla porta 25800
-# =============================================================================
-def thread_rx(port, cache):
+def thread_comunicazione(port, cache):
     """
-    Thread di ricezione comandi.
-    Ascolta sulla porta specificata e decodifica comandi in arrivo.
+    Thread di comunicazione con connessione persistente.
 
-    Args:
-        port: Porta di ascolto (default 25800)
-        cache: Cache condivisa con stato_comunicazione
-    """
-    server = None
-
-    while True:
-        # Crea server socket se non esiste
-        if server is None:
-            try:
-                server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                server.bind(('0.0.0.0', port))
-                server.listen(1)
-                logging.info(f"[RX] In ascolto su porta {port}")
-            except Exception as e:
-                logging.error(f"[RX] Errore bind porta {port}: {e}")
-                server = None
-                time.sleep(1)
-                continue
-
-        # Accetta connessioni
-        try:
-            server.settimeout(1.0)  # Timeout per non bloccare indefinitamente
-            conn, addr = server.accept()
-            logging.info(f"[RX] Connessione da {addr}")
-
-            conn.settimeout(0.1)
-
-            while True:
-                try:
-                    data = conn.recv(1024).decode("UTF-8")
-                    if not data:
-                        break  # Connessione chiusa
-
-                    logging.debug(f"[RX] {data}")
-                    decode_cmd1(data, cache['stato_comunicazione'])
-
-                except socket.timeout:
-                    continue
-                except Exception as e:
-                    logging.error(f"[RX] Errore ricezione: {e}")
-                    break
-
-            conn.close()
-
-        except socket.timeout:
-            continue
-        except Exception as e:
-            logging.error(f"[RX] Errore accept: {e}")
-            time.sleep(0.1)
-
-
-# =============================================================================
-# THREAD TX - Trasmette dati sulla porta 28501
-# =============================================================================
-def thread_tx(port, cache):
-    """
-    Thread di trasmissione dati.
-    Connette alla porta specificata e invia dati punto in continuo.
-
-    Args:
-        port: Porta di destinazione (default 28501)
-        cache: Cache con queue dati da inviare
+    - Mantiene connessione aperta
+    - Manda dati punto in continuo (dalla coda)
+    - Riceve e decodifica comandi quando arrivano (non bloccante)
     """
     conn = None
-    last_data = None
+    last_data = None  # Ultimo dato valido per reinvio
 
     while True:
-        # Connetti se non connesso
+        # === CONNESSIONE ===
+        # Se non connesso, prova a connettersi
         if conn is None:
             try:
                 conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                conn.connect((cache['config'].get('ip', 'localhost'), port))
-                logging.info(f"[TX] Connesso a {cache['config'].get('ip')}:{port}")
+                conn.connect((cache['config'].get('ip', "localhost"), port))
+                conn.setblocking(False)  # Non-bloccante dopo connessione
+                logging.info(f"Connesso a {cache['config'].get('ip')}:{port}")
+
+                # Manda start_cfg alla connessione
+                conn.sendall(b"start_cfg ")
+
             except Exception as e:
-                logging.error(f"[TX] Connessione fallita: {e}")
+                logging.error(f"Connessione fallita: {e}")
                 conn = None
-                time.sleep(1)
+                import time
+                time.sleep(1)  # Attendi prima di riprovare
                 continue
 
-        # Prendi ultimo dato dalla coda (non bloccante)
-        while True:
-            try:
-                last_data = cache['queue'].get_nowait()
-            except:
-                break
-
-        # Invia dato
+        # === INVIO DATI (non bloccante) ===
         try:
+            # Svuota coda e prendi ultimo valore
+            while True:
+                try:
+                    last_data = cache['queue'].get_nowait()
+                except:
+                    break
+
+            # Manda ultimo dato (o idle se nessun dato)
             if last_data:
                 msg = encode_response(last_data)
             else:
@@ -187,21 +131,33 @@ def thread_tx(port, cache):
             logging.debug(f"[TX] {msg}")
 
         except (BrokenPipeError, ConnectionResetError, OSError) as e:
-            logging.error(f"[TX] Errore invio: {e}")
+            logging.error(f"Errore invio: {e}")
             conn.close()
             conn = None
             continue
 
-        # Piccola pausa per non saturare
-        time.sleep(0.01)
+        # === RICEZIONE DATI (non bloccante con select) ===
+        try:
+            # Controlla se ci sono dati da leggere (timeout 10ms)
+            ready, _, _ = select.select([conn], [], [], 0.01)
 
+            if ready:
+                data = conn.recv(1024).decode("UTF-8")
+                if data:
+                    logging.debug(f"[RX] {data}")
+                    decode_cmd1(data, cache['stato_comunicazione'])
+                else:
+                    # Connessione chiusa dal server
+                    logging.warning("Connessione chiusa dal server")
+                    conn.close()
+                    conn = None
+                    continue
 
-# =============================================================================
-# FUNZIONE LEGACY (per compatibilita')
-# =============================================================================
-def thread_comunicazione(port, cache):
-    """
-    Funzione legacy - ora usa thread separati.
-    Mantiene compatibilita' chiamando thread_tx.
-    """
-    thread_tx(port, cache)
+        except (BlockingIOError, socket.error):
+            # Nessun dato disponibile, continua
+            pass
+        except Exception as e:
+            logging.error(f"Errore ricezione: {e}")
+            conn.close()
+            conn = None
+            continue

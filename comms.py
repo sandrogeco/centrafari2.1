@@ -83,24 +83,32 @@ def decode_cmd1(resp, commands):
 
 def thread_comunicazione(port, cache):
     """
-    Thread di comunicazione con connessione persistente.
+    Thread di comunicazione sincrona request-response.
 
-    - Mantiene connessione aperta
-    - Manda dati punto in continuo (dalla coda)
-    - Riceve e decodifica comandi quando arrivano (non bloccante)
+    Ciclo:
+    1. TX: manda dati punto
+    2. RX: aspetta risposta (con timeout)
+    3. Rispetta tempo minimo di ciclo
     """
+    import time
+
     conn = None
-    last_data = None  # Ultimo dato valido per reinvio
+    last_data = None
 
     while True:
+        cycle_start = time.monotonic()
+
+        # Parametri da config
+        config = cache['config']
+        cycle_min_ms = config.get('comm_cycle_min_ms', 100)
+        timeout_ms = config.get('comm_timeout_ms', 500)
+
         # === CONNESSIONE ===
-        # Se non connesso, prova a connettersi
         if conn is None:
             try:
                 conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                conn.connect((cache['config'].get('ip', "localhost"), port))
-                conn.setblocking(False)  # Non-bloccante dopo connessione
-                logging.info(f"Connesso a {cache['config'].get('ip')}:{port}")
+                conn.connect((config.get('ip', "localhost"), port))
+                logging.info(f"Connesso a {config.get('ip')}:{port}")
 
                 # Manda start_cfg alla connessione
                 conn.sendall(b"start_cfg ")
@@ -108,11 +116,10 @@ def thread_comunicazione(port, cache):
             except Exception as e:
                 logging.error(f"Connessione fallita: {e}")
                 conn = None
-                import time
-                time.sleep(1)  # Attendi prima di riprovare
+                time.sleep(1)
                 continue
 
-        # === INVIO DATI (non bloccante) ===
+        # === TX: INVIO DATI ===
         try:
             # Svuota coda e prendi ultimo valore
             while True:
@@ -136,10 +143,11 @@ def thread_comunicazione(port, cache):
             conn = None
             continue
 
-        # === RICEZIONE DATI (non bloccante con select) ===
+        # === RX: ATTESA RISPOSTA (bloccante con timeout) ===
         try:
-            # Controlla se ci sono dati da leggere (timeout 10ms)
-            ready, _, _ = select.select([conn], [], [], 0.01)
+            conn.setblocking(False)
+            timeout_sec = timeout_ms / 1000.0
+            ready, _, _ = select.select([conn], [], [], timeout_sec)
 
             if ready:
                 data = conn.recv(1024).decode("UTF-8")
@@ -147,17 +155,23 @@ def thread_comunicazione(port, cache):
                     logging.debug(f"[RX] {data}")
                     decode_cmd1(data, cache['stato_comunicazione'])
                 else:
-                    # Connessione chiusa dal server
                     logging.warning("Connessione chiusa dal server")
                     conn.close()
                     conn = None
                     continue
+            else:
+                logging.warning(f"[RX] Timeout ({timeout_ms}ms) - nessuna risposta")
 
         except (BlockingIOError, socket.error):
-            # Nessun dato disponibile, continua
             pass
         except Exception as e:
             logging.error(f"Errore ricezione: {e}")
             conn.close()
             conn = None
             continue
+
+        # === RISPETTA TEMPO MINIMO CICLO ===
+        cycle_elapsed_ms = (time.monotonic() - cycle_start) * 1000
+        if cycle_elapsed_ms < cycle_min_ms:
+            sleep_time = (cycle_min_ms - cycle_elapsed_ms) / 1000.0
+            time.sleep(sleep_time)

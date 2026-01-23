@@ -36,7 +36,7 @@ from funcs_misc import (
 from funcs_anabbagliante import rileva_punto_angoloso, rileva_punto_angoloso1
 from funcs_luminosita import calcola_lux
 from camera import set_camera, apri_camera, autoexp
-from comms import thread_comunicazione
+from comms import thread_rx, thread_tx
 from utils import uccidi_processo, get_colore, disegna_segmento
 from calibrazione import CalibrationManager
 
@@ -388,12 +388,20 @@ if __name__ == "__main__":
     # Carica configurazione iniziale
     init_config("config.json", cache, percorso_script)
 
-    #Avvia thread di comunicazione 
+    # Avvia thread di comunicazione (RX e TX separati)
     if cache['COMM']:
+        # Thread RX: riceve comandi sulla porta 25800
         threading.Thread(
-            target=partial(thread_comunicazione, cache['config']['port'], cache),
+            target=partial(thread_rx, cache['config'].get('port_rx', 25800), cache),
             daemon=True,
-            name="com_in"
+            name="comm_rx"
+        ).start()
+
+        # Thread TX: trasmette dati sulla porta 28501
+        threading.Thread(
+            target=partial(thread_tx, cache['config'].get('port_tx', 28501), cache),
+            daemon=True,
+            name="comm_tx"
         ).start()
 
     # Inizializza e avvia GUI

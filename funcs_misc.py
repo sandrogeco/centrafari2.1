@@ -93,53 +93,53 @@ def is_punto_ok(point, cache):
     is_inside = abs(dx) <= toh and abs(dy) <= tov
 
     # Calcola indicazioni direzionali con 3 livelli
-    # Gli indicatori dicono "dove spostare il faro" per centrare
+    # 3 = ok, 2 = fuori, 1 = molto fuori
 
     # Orizzontale (left/right)
     if dx < -toh:
         # Punto a sinistra → spostare faro a DESTRA
         if dx < -2*toh:
-            right = 2  # Molto fuori, spostare molto a destra
+            right = 1  # Molto fuori
         else:
-            right = 1  # Poco fuori, spostare poco a destra
-        left = 0
+            right = 2  # Fuori
+        left = 3
     elif dx > toh:
         # Punto a destra → spostare faro a SINISTRA
         if dx > 2*toh:
-            left = 2  # Molto fuori, spostare molto a sinistra
+            left = 1  # Molto fuori
         else:
-            left = 1  # Poco fuori, spostare poco a sinistra
-        right = 0
+            left = 2  # Fuori
+        right = 3
     else:
         # Dentro orizzontalmente
-        left = 0
-        right = 0
+        left = 3
+        right = 3
 
     # Verticale (up/down)
     if dy < -tov:
         # Punto in alto → spostare faro in BASSO (GIÙ)
         if dy < -2*tov:
-            down = 2  # Molto fuori, spostare molto giù
+            down = 1  # Molto fuori
         else:
-            down = 1  # Poco fuori, spostare poco giù
-        up = 0
+            down = 2  # Fuori
+        up = 3
     elif dy > tov:
         # Punto in basso → spostare faro in ALTO (SU)
         if dy > 2*tov:
-            up = 2  # Molto fuori, spostare molto su
+            up = 1  # Molto fuori
         else:
-            up = 1  # Poco fuori, spostare poco su
-        down = 0
+            up = 2  # Fuori
+        down = 3
     else:
         # Dentro verticalmente
-        up = 0
-        down = 0
+        up = 3
+        down = 3
 
     # Determina status generale
-    max_level = max(left, right, up, down)
-    if max_level == 0:
+    min_level = min(left, right, up, down)
+    if min_level == 3:
         status = 'ok'
-    elif max_level == 1:
+    elif min_level == 2:
         status = 'warning'
     else:
         status = 'error'

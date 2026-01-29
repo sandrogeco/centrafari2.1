@@ -93,7 +93,7 @@ def is_punto_ok(point, cache):
     is_inside = abs(dx) <= toh and abs(dy) <= tov
 
     # Calcola indicazioni direzionali con 3 livelli
-    # 3 = ok, 2 = fuori, 1 = molto fuori
+    # 3 = ok (centro), 2 = fuori, 1 = molto fuori, 0 = direzione opposta
 
     # Orizzontale (left/right)
     if dx < -toh:
@@ -102,14 +102,14 @@ def is_punto_ok(point, cache):
             right = 1  # Molto fuori
         else:
             right = 2  # Fuori
-        left = 3
+        left = 0
     elif dx > toh:
         # Punto a destra → spostare faro a SINISTRA
         if dx > 2*toh:
             left = 1  # Molto fuori
         else:
             left = 2  # Fuori
-        right = 3
+        right = 0
     else:
         # Dentro orizzontalmente
         left = 3
@@ -122,21 +122,22 @@ def is_punto_ok(point, cache):
             down = 1  # Molto fuori
         else:
             down = 2  # Fuori
-        up = 3
+        up = 0
     elif dy > tov:
         # Punto in basso → spostare faro in ALTO (SU)
         if dy > 2*tov:
             up = 1  # Molto fuori
         else:
             up = 2  # Fuori
-        down = 3
+        down = 0
     else:
         # Dentro verticalmente
         up = 3
         down = 3
 
-    # Determina status generale
-    min_level = min(left, right, up, down)
+    # Determina status generale (ignora 0 che è direzione opposta)
+    levels = [v for v in [left, right, up, down] if v > 0]
+    min_level = min(levels) if levels else 3
     if min_level == 3:
         status = 'ok'
     elif min_level == 2:

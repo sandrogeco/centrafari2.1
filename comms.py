@@ -171,7 +171,7 @@ def thread_comunicazione(port, cache):
                 logging.info(f"Connesso a {config.get('ip')}:{port}")
 
                 # Manda start_cfg alla connessione
-                conn.sendall(b"start_cfg ")
+             #   conn.sendall(b"start_cfg ")
 
             except Exception as e:
                 logging.error(f"Connessione fallita: {e}")
@@ -234,6 +234,9 @@ def thread_comunicazione(port, cache):
             conn.close()
             conn = None
             continue
+
+        conn.close()
+        conn = None
 
         # === RISPETTA TEMPO MINIMO CICLO ===
         cycle_elapsed_ms = (time.monotonic() - cycle_start) * 1000

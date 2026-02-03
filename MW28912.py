@@ -328,6 +328,28 @@ def show_frame(cache, lmain):
         )
         cache['t0'] = t0
 
+    # Gestione rot (0=normale, 1=ruotato 180°)
+    rot = int(stato_comunicazione.get('rot', 0))
+    if rot == 1:
+        image_output = cv2.flip(image_output, -1)  # Rotazione 180°
+
+    # Sposta finestra se rot cambia
+    if 'root' in cache and rot != cache.get('last_rot', 0):
+        root = cache['root']
+        width = config['width']
+        height = config['height']
+        if rot == 1:
+            # Posizione ruotata
+            new_x = cache['screen_width'] - config['window_shift_x'] - width
+            new_y = cache['screen_height'] - config['window_shift_y'] - height
+        else:
+            # Posizione normale
+            new_x = config['window_shift_x']
+            new_y = config['window_shift_y']
+        root.geometry(f"{width}x{height}+{new_x}+{new_y}")
+        cache['last_rot'] = rot
+        logging.info(f"Finestra spostata per rot={rot}: ({new_x}, {new_y})")
+
     # Converti BGR (OpenCV) → RGB (PIL/tkinter) e visualizza immagine finale
     image_rgb = cv2.cvtColor(image_output, cv2.COLOR_BGR2RGB)
     img = PIL.Image.fromarray(image_rgb)
@@ -438,6 +460,13 @@ if __name__ == "__main__":
             f"{cache['config']['window_shift_x']}+{cache['config']['window_shift_y']}"
         )
         root.resizable(False, False)
+
+        # Salva dimensioni schermo e root in cache per gestione rot
+        cache['screen_width'] = root.winfo_screenwidth()
+        cache['screen_height'] = root.winfo_screenheight()
+        cache['root'] = root
+        cache['last_rot'] = 0  # Traccia ultimo valore rot per rilevare cambiamenti
+
         lmain = tk.Label(root)
         lmain.bind("<Button-1>", callback_click)  # Bind click sinistro/touch
         lmain.pack()

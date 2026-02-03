@@ -125,8 +125,12 @@ def show_frame(cache, lmain):
     else:
         cache['autoexp_ok'] = True
 
+    # Posizione: 0=dx, 1=sx, 2=fendinebbia
+    pos = str(stato_comunicazione.get('pos', '0'))
+    is_left_position = (pos == '1')
+    is_fendinebbia_mode = (pos == '2')
+
     # Flip immagine se posizione sinistra
-    is_left_position = cache['stato_comunicazione'].get('pos', 'dx') == 'sx'
     if is_left_position:
         image_input = cv2.flip(image_input, 1)
         image_view = cv2.flip(image_view, 1)
@@ -144,7 +148,11 @@ def show_frame(cache, lmain):
     # ====================
     # 4. ELABORAZIONE TIPO FARO / CALIBRAZIONE
     # ====================
-    tipo_faro = stato_comunicazione.get('tipo_faro', 'anabbagliante').strip()
+    # pos=2 forza fendinebbia
+    if is_fendinebbia_mode:
+        tipo_faro = 'fendinebbia'
+    else:
+        tipo_faro = stato_comunicazione.get('tipo_faro', 'anabbagliante').strip()
 
     # Modalità calibrazione
     if tipo_faro == 'calibrazione':

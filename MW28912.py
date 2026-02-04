@@ -330,8 +330,6 @@ def show_frame(cache, lmain):
 
     # Gestione rot (0=normale, 1=ruotato 180°)
     rot = int(stato_comunicazione.get('rot', 0))
-    if rot == 1:
-        image_output = cv2.flip(image_output, -1)  # Rotazione 180°
 
     # Sposta finestra se rot cambia
     if 'root' in cache and rot != cache.get('last_rot', 0):
@@ -353,6 +351,11 @@ def show_frame(cache, lmain):
     # Converti BGR (OpenCV) → RGB (PIL/tkinter) e visualizza immagine finale
     image_rgb = cv2.cvtColor(image_output, cv2.COLOR_BGR2RGB)
     img = PIL.Image.fromarray(image_rgb)
+
+    # Flip 180° solo per visualizzazione se rot=1
+    if rot == 1:
+        img = img.transpose(PIL.Image.ROTATE_180)
+
     imgtk = ImageTk.PhotoImage(image=img)
     lmain.imgtk = imgtk
     lmain.configure(image=imgtk)

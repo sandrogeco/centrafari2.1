@@ -7,50 +7,24 @@ def preprocess(image_orig, cache):
     config = cache['config']
 
     if 'crop_w' not in config or 'crop_h' not in config:
-        return image_orig
+        return image_orig, image_orig.copy()
 
     height, width = image_orig.shape[:2]
-    #image=image[-cache['config']['height']:,:]
-    # Ritaglia immagine
     crop_center = config.get('crop_center', [width/2, height/2])
     crop_w = config['crop_w']
     crop_h = config['crop_h']
 
-    # Definisci lo spostamento (in pixel)
-    tx = int(config['width']/2-crop_center[0])  # spostamento orizzontale (positiva = destra)
-    ty =int(config['height']/2-crop_center[1])  # spostamento verticale (positiva = giù)
-
-    # Crea la matrice di traslazione 2x3
-    M = np.float32([[1, 0, tx],
-                    [0, 1, ty]])
-
-    # Applica la trasformazione
-    rows, cols = image_orig.shape[:2]
-    img_translated = cv2.warpAffine(image_orig, M, (cols, rows))
-
+    # Calcola regione di crop centrata su crop_center
     start_y = max(int(crop_center[1] - crop_h/2), 0)
-    end_y = int(start_y + crop_h)
+    end_y = min(int(crop_center[1] + crop_h/2), height)
     start_x = max(int(crop_center[0] - crop_w/2), 0)
-    end_x = int(start_x + crop_w)
+    end_x = min(int(crop_center[0] + crop_w/2), width)
 
+    # Crop effettivo
+    image_input = image_orig[start_y:end_y, start_x:end_x].copy()
+    image_view = cv2.convertScaleAbs(image_input, alpha=1.0, beta=20)
 
-    start_y = max(int(height/2 - crop_h/2), 0)
-    end_y = int(height/2 + crop_h)
-    start_x = max(int(width/2 - crop_w/2), 0)
-    end_x = int(width/2 + crop_w/2)
-
-    image=img_translated
-    image_o = image.copy() * 0
-   # image[0: end_y1-start_y1,0:end_x1-start_x1] = image_orig[start_y1: end_y1,start_x1:end_x1]
-
-    image_o[start_y : end_y, start_x : end_x] = image[start_y : end_y, start_x : end_x]
-    image=cv2.convertScaleAbs(image, alpha=1.0, beta=20)
-
-
-    # Stira immagine
-    #image = cv2.resize(image, (0, 0), fx=1.0 * config['width'] / config['crop_w'], fy=1.0 * config['height'] / config['crop_h'])
-
-    return image_o,image
+    return image_input, image_view
 
 
 def is_punto_ok(point, cache):

@@ -80,13 +80,14 @@ def encode_response(p, cache=None):
         # TODO: applicare se necessario
 
         # UMB: unità misura luminosità (0=lux/25m, 1=Kcandles/1m, 2=KLux/1m)
+        # Conversione: candela = lux × d² = lux × 625 (a 25m)
         umb = int(stato.get('UMB', 0))
         if umb == 0:  # lux/25m (default, nessuna conversione)
             out_lux = lux
-        elif umb == 1:  # Kcandles/1m
-            out_lux = lux * 0.001  # TODO: verificare conversione
-        elif umb == 2:  # KLux/1m
-            out_lux = lux * 0.001  # TODO: verificare conversione
+        elif umb == 1:  # Kcandles/1m = lux × 625 / 1000
+            out_lux = lux * 0.625
+        elif umb == 2:  # KLux/1m = lux × 625 / 1000
+            out_lux = lux * 0.625
 
     if USE_NEW_FORMAT:
         msg = (

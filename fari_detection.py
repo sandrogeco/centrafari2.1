@@ -353,7 +353,7 @@ def detect_fendinebbia(image_input: np.ndarray,
         # Calcola punti linea per rendering
         h, w = image_input.shape
         xs = np.array([0, X0, w])
-        ys = two_lines_model(xs, X0, Y0, mo, mi)
+        ys = one_line_model(xs, X0, Y0, mo)
 
         linee = [
             (int(round(xs[0])), int(round(ys[0])), int(round(xs[2])), int(round(ys[2])))

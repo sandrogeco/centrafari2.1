@@ -342,7 +342,8 @@ def detect_fendinebbia(image_input: np.ndarray,
         popt, _ = curve_fit(one_line_model, x_data, y_data, p0=p0, bounds=bounds,
                            ftol=ftol, xtol=xtol, maxfev=maxfev)
         X0, Y0, mo = popt
-        X0 = int((np.max(x_data) + np.min(x_data)) / 2)  # Centro dello span
+        h, w = image_input.shape
+        X0 = int(w / 2)  # Fendinebbia: X forzata al centro immagine
         mi = 0
 
         # Salva in cache e calcola angoli
@@ -351,7 +352,6 @@ def detect_fendinebbia(image_input: np.ndarray,
         angles = calculate_angles(X0, Y0, mo, cache)
 
         # Calcola punti linea per rendering
-        h, w = image_input.shape
         xs = np.array([0, X0, w])
         ys = one_line_model(xs, X0, Y0, mo)
 
@@ -530,8 +530,9 @@ def draw_results(image_output: np.ndarray,
             x1, y1, x2, y2 = linea
             cv2.line(image_output, (x1, y1), (x2, y2), color, 1, lineType=cv2.LINE_AA)
 
-    # Disegna punto centrale (con colore già determinato)
-    if punto is not None:
+    # Disegna punto centrale (con colore già determinato) - no punto per fendinebbia
+    tipo = results.get('tipo', '')
+    if punto is not None and tipo != 'fendinebbia':
         radius = 6
         cv2.circle(image_output, (int(round(punto[0])), int(round(punto[1]))),
                   radius, color, -1, lineType=cv2.LINE_AA)

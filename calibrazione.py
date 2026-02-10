@@ -33,9 +33,9 @@ STRINGS_IT = {
     'step3_name': '3. Inclinazione',
 
     # Istruzioni per ogni step (mostrate in basso)
-    'step1_instruction': 'Spegnere faro',
+    'step1_instruction': 'Spegnere faro e premere un punto qualsiasi',
     'step2_instruction': 'Accendere a inclinazione 0 e cliccare su punto centrale',
-    'step3_instruction': 'Portare a inclinazione 4% e cliccare per confermare',
+    'step3_instruction': 'Portare a inclinazione -4% e cliccare per confermare',
 
     # Pulsante termina
     'btn_terminate': 'TERMINA',
@@ -440,8 +440,8 @@ class CalibrationManager:
         center_x = width / 2
         center_y = height / 2
 
-        # m = pendenza (pixel per 1% di inclinazione)
-        calib_m = (punto[1] - center_y) / 4.0
+        # m = pendenza (pixel per 1% di inclinazione, calibrazione a -4%)
+        calib_m = (punto[1] - center_y) / -4.0
 
         if abs(calib_m) < 0.1:
             logging.error("Step 3: pendenza troppo piccola, riprova")

@@ -96,10 +96,10 @@ def show_frame(cache, lmain):
     prev_run = cache.get('prev_run', False)
     cache['prev_run'] = should_show
 
-    # Transizione run 0→1: reset PID autoexp e riparti da esposizione bassa
+    # Transizione run 0→1: reset PID autoexp e riparti da esposizione iniziale
     if should_show and not prev_run:
         cache['autoexp_pid'] = None
-        cache['config']['exposure_absolute'] = cache['config'].get('autoexp_exp_min', 50)
+        cache['config']['exposure_absolute'] = cache['config'].get('autoexp_exp_start', 200)
         logging.info("Run 0→1: reset autoexp PID")
 
     current_state = root.state()

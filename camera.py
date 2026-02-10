@@ -109,6 +109,10 @@ def autoexp(image_input, image_view, cache):
 
         correction = Kp * error + Ki * pid['integral'] + Kd * derivative
 
+        # Limita correzione massima per frame (es. ±20%)
+        max_corr = config.get('autoexp_max_corr', 0.2)
+        correction = np.clip(correction, -max_corr, max_corr)
+
         # Applica correzione moltiplicativa: exp_new = exp_old * (1 + correction)
         exp_old = config['exposure_absolute']
         exp_new = exp_old * (1.0 + correction)
@@ -123,11 +127,10 @@ def autoexp(image_input, image_view, cache):
 
         cache['autoexp_ok'] = pid['stable_count'] >= stable_frames
 
-        # Applica esposizione se cambiata
-        if int(exp_new) != int(exp_old):
-            os.system(f"v4l2-ctl --device /dev/video{config['indice_camera']} "
-                      f"--set-ctrl=exposure_absolute={int(exp_new)}")
-            time.sleep(0.1)
+        # Applica esposizione sempre
+        os.system(f"v4l2-ctl --device /dev/video{config['indice_camera']} "
+                  f"--set-ctrl=exposure_absolute={int(exp_new)}")
+        time.sleep(0.1)
 
         logging.debug(f"PID exp:{int(exp_new)} max:{r} err:{error:.3f} "
                      f"corr:{correction:.4f} stable:{pid['stable_count']}/{stable_frames}")

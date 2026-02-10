@@ -411,8 +411,13 @@ class CalibrationManager:
             image_output: Immagine su cui disegnare
             cache: Cache con configurazione
         """
-        # TODO: Implementare logica calibrazione inclinazione
-        pass
+        # Mostra avviso se autoexp non è stabile
+        if not cache.get('autoexp_ok', True):
+            height = cache['config'].get('height', 320)
+            width = cache['config'].get('width', 630)
+            msg = "Attendi stabilizzazione esposizione..."
+            cv2.putText(image_output, msg, (width // 2 - 180, height // 2),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, get_colore('yellow'), 1)
 
     def _handle_click_step3(self, x, y, cache):
         """
@@ -428,6 +433,11 @@ class CalibrationManager:
             True se la calibrazione e' terminata, False altrimenti
         """
         logging.info(f"Step 3 (inclinazione) - Click ricevuto")
+
+        # Blocca se autoexp non è stabile
+        if not cache.get('autoexp_ok', True):
+            logging.warning("Step 3: autoexp non stabile, click ignorato")
+            return False
 
         # Usa il punto già rilevato da MW28912.py (su immagine preprocessata)
         punto = cache.get('calibration_point')

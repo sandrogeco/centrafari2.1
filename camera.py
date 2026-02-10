@@ -57,9 +57,10 @@ def autoexp(image_input,image_view,cache):
                 os.system(f"v4l2-ctl --device /dev/video{cache['config']['indice_camera']} --set-ctrl=exposure_absolute={cache['config']['exposure_absolute']}")
                 time.sleep(0.1)
 
-        # if (cache['autoexp_ok'] ==False):
-        #     cv2.putText(image_view, str(r)+" calcolo autoe in corso " + str(cache['config']['exposure_absolute'])+ " 235s:"+str(s235), (5, 80),
-        #             cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, get_colore('green'), 1)
+        if cache['DEBUG']:
+            msg = f"max:{r} mean:{int(np.mean(image_input))} exp:{int(cache['config']['exposure_absolute'])}"
+            cv2.putText(image_view, msg, (5, 80),
+                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, get_colore('green'), 1)
     except Exception as e:
         logging.error(f"error: {e}")
     return image_view

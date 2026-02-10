@@ -31,11 +31,13 @@ STRINGS_IT = {
     'step1_name': '1. Calibrazione buio',
     'step2_name': '2. Centraggio',
     'step3_name': '3. Inclinazione',
+    'step100_name': 'Calibrazione terminata',
 
     # Istruzioni per ogni step (mostrate in basso)
     'step1_instruction': 'Spegnere faro e premere un punto qualsiasi',
     'step2_instruction': 'Accendere a inclinazione 0 e cliccare su punto centrale',
     'step3_instruction': 'Portare a inclinazione -4% e cliccare per confermare',
+    'step100_instruction': 'Calibrazione terminata',
 
     # Pulsante termina
     'btn_terminate': 'TERMINA',
@@ -154,9 +156,9 @@ class CalibrationManager:
             self.step_data = {'state': 0}  # Reset stato per nuovo step
             logging.info(f"Avanzamento a step {self.current_step}")
         else:
-            # Tutti gli step completati
-            logging.info("Tutti gli step completati, termino calibrazione")
-            self.stop_calibration()
+            # Tutti gli step completati - vai a step 100 (schermata finale)
+            self.current_step = 100
+            logging.info("Tutti gli step completati, mostro schermata finale")
 
     def process_frame(self, image_output, cache):
         """
@@ -215,35 +217,33 @@ class CalibrationManager:
 
         # --- LISTA STEP ---
         step_names = [
-            STRINGS['step1_name'],
-            STRINGS['step2_name'],
-            STRINGS['step3_name'],
+            (1, STRINGS['step1_name']),
+            (2, STRINGS['step2_name']),
+            (3, STRINGS['step3_name']),
+            (100, STRINGS['step100_name']),
         ]
 
         y_pos = 55  # Posizione Y iniziale per lista step
-        for i, step_name in enumerate(step_names):
-            step_num = i + 1
+        for step_num, step_name in step_names:
 
             # Determina colore e simbolo in base allo stato
             if step_num in self.steps_completed:
                 # Step completato: verde con spunta
                 color = color_completed
-                # Disegna spunta (checkmark) prima del testo
                 check_x = 10
                 check_y = y_pos
-                # Spunta semplice con due linee
                 cv2.line(image_output, (check_x, check_y - 5), (check_x + 5, check_y), color, 2)
                 cv2.line(image_output, (check_x + 5, check_y), (check_x + 15, check_y - 12), color, 2)
                 text_x = 30
             elif step_num == self.current_step:
                 # Step attivo: giallo con indicatore
                 color = color_active
-                cv2.circle(image_output, (15, y_pos - 5), 5, color, -1)  # Pallino pieno
+                cv2.circle(image_output, (15, y_pos - 5), 5, color, -1)
                 text_x = 30
             else:
                 # Step pending: bianco
                 color = color_pending
-                cv2.circle(image_output, (15, y_pos - 5), 5, color, 1)  # Pallino vuoto
+                cv2.circle(image_output, (15, y_pos - 5), 5, color, 1)
                 text_x = 30
 
             cv2.putText(image_output, step_name, (text_x, y_pos),
@@ -255,6 +255,7 @@ class CalibrationManager:
             1: STRINGS['step1_instruction'],
             2: STRINGS['step2_instruction'],
             3: STRINGS['step3_instruction'],
+            100: STRINGS['step100_instruction'],
         }
 
         instruction_text = instructions.get(self.current_step, '')

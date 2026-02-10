@@ -139,13 +139,6 @@ class CalibrationManager:
         self.step_data = {}
         self.steps_completed = set()
 
-        # Rimuovi "calibrazione" da tipo_faro per uscire dalla modalita'
-        if 'tipo_faro' in self.cache['stato_comunicazione']:
-            if self.cache['stato_comunicazione']['tipo_faro'] == 'calibrazione':
-                # Ripristina a anabbagliante (default)
-                self.cache['stato_comunicazione']['tipo_faro'] = 'anabbagliante'
-                logging.info("tipo_faro ripristinato a 'anabbagliante'")
-
     def _advance_to_next_step(self):
         """
         Avanza allo step successivo o termina se completati tutti.

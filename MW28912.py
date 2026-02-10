@@ -154,7 +154,10 @@ def show_frame(cache, lmain):
     else:
         tipo_faro = stato_comunicazione.get('tipo_faro', 'anabbagliante').strip()
 
-    # Modalità calibrazione
+    # Modalità calibrazione - avvia solo su transizione a 'calibrazione'
+    prev_tipo_faro = cache.get('prev_tipo_faro', '')
+    cache['prev_tipo_faro'] = tipo_faro
+
     if tipo_faro == 'calibrazione':
         # Crea CalibrationManager on-demand se non esiste
         if 'calibration_manager' not in cache:
@@ -162,9 +165,12 @@ def show_frame(cache, lmain):
 
         calibration_manager = cache['calibration_manager']
 
-        # Avvia calibrazione se non già attiva
-        if not calibration_manager.calibration_active:
+        # Avvia calibrazione solo su transizione da altro tipo_faro
+        if not calibration_manager.calibration_active and prev_tipo_faro != 'calibrazione':
             calibration_manager.start_calibration()
+
+    if tipo_faro == 'calibrazione' and cache.get('calibration_manager') and cache['calibration_manager'].calibration_active:
+        calibration_manager = cache['calibration_manager']
 
         # Step 3: esegui detection per mostrare punto e linee
         if calibration_manager.current_step == 3:

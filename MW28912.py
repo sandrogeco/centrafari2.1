@@ -227,9 +227,15 @@ def show_frame(cache, lmain):
     # 5. CALCOLO LUMINOSITÀ
     # ====================
     config = cache['config']
-    sft_x = config['lux_sft_x'] * config['crop_w'] / 160
-    sft_y = config['lux_sft_y'] * config['crop_h'] / 160
     lux_size = (config['lux_w'], config['lux_h'])
+
+    # Abbagliante e fendinebbia: quadrato centrato sul punto (offset 0)
+    if tipo_faro in ('abbagliante', 'fendinebbia'):
+        sft_x = 0
+        sft_y = 0
+    else:
+        sft_x = config['lux_sft_x'] * config['crop_w'] / 160
+        sft_y = config['lux_sft_y'] * config['crop_h'] / 160
 
     if point:
         px_lux = calcola_px_lux(

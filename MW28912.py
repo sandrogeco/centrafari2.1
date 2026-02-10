@@ -93,6 +93,14 @@ def show_frame(cache, lmain):
     root = lmain.master
     stato_comunicazione = cache.get('stato_comunicazione', {})
     should_show = stato_comunicazione.get('run', '1') == '1'
+    prev_run = cache.get('prev_run', False)
+    cache['prev_run'] = should_show
+
+    # Transizione run 0→1: reset PID autoexp e riparti da esposizione bassa
+    if should_show and not prev_run:
+        cache['autoexp_pid'] = None
+        cache['config']['exposure_absolute'] = cache['config'].get('autoexp_exp_min', 50)
+        logging.info("Run 0→1: reset autoexp PID")
 
     current_state = root.state()
     if should_show and current_state == 'withdrawn':

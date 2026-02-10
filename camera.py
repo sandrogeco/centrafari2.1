@@ -68,9 +68,9 @@ def autoexp_legacy(image_input,image_view,cache):
 
 def autoexp(image_input, image_view, cache):
     """
-    Controllo PID esposizione automatica.
-    Setpoint: max pixel = autoexp_setpoint (default 237).
-    autoexp_ok = True quando errore stabile per N frame consecutivi.
+    Controllo PID esposizione automatica (moltiplicativo).
+    Lavora sull'errore normalizzato (error/setpoint) per stabilità.
+    autoexp_ok = True quando errore entro tolleranza per N frame consecutivi.
     """
     config = cache['config']
     pid = cache.get('autoexp_pid')
@@ -85,37 +85,38 @@ def autoexp(image_input, image_view, cache):
         cache['autoexp_pid'] = pid
 
     # Parametri PID da config
-    Kp = config.get('autoexp_Kp', 0.5)
-    Ki = config.get('autoexp_Ki', 0.05)
-    Kd = config.get('autoexp_Kd', 0.1)
+    Kp = config.get('autoexp_Kp', 2.0)
+    Ki = config.get('autoexp_Ki', 0.2)
+    Kd = config.get('autoexp_Kd', 0.5)
     setpoint = config.get('autoexp_setpoint', 237)
-    stable_tol = config.get('autoexp_stable_tol', 3)
-    stable_frames = config.get('autoexp_stable_frames', 5)
+    stable_tol = config.get('autoexp_stable_tol', 5)
+    stable_frames = config.get('autoexp_stable_frames', 10)
     exp_min = config.get('autoexp_exp_min', 50)
     exp_max = config.get('autoexp_exp_max', 10000)
-    integral_max = config.get('autoexp_integral_max', 500)
+    integral_max = config.get('autoexp_integral_max', 2.0)
 
     try:
         r = np.max(image_input)
-        error = setpoint - r
 
-        # PID
+        # Errore normalizzato: quanto % siamo lontani dal target
+        error = (setpoint - r) / setpoint
+
+        # PID su errore normalizzato
         pid['integral'] += error
-        # Anti-windup
         pid['integral'] = np.clip(pid['integral'], -integral_max, integral_max)
         derivative = error - pid['prev_error']
         pid['prev_error'] = error
 
-        output = Kp * error + Ki * pid['integral'] + Kd * derivative
+        correction = Kp * error + Ki * pid['integral'] + Kd * derivative
 
-        # Applica correzione all'esposizione
+        # Applica correzione moltiplicativa: exp_new = exp_old * (1 + correction)
         exp_old = config['exposure_absolute']
-        exp_new = exp_old + output
+        exp_new = exp_old * (1.0 + correction)
         exp_new = np.clip(exp_new, exp_min, exp_max)
         config['exposure_absolute'] = float(exp_new)
 
-        # Stabilità: errore entro tolleranza per N frame consecutivi
-        if abs(error) <= stable_tol:
+        # Stabilità: max pixel entro tolleranza dal setpoint per N frame
+        if abs(r - setpoint) <= stable_tol:
             pid['stable_count'] += 1
         else:
             pid['stable_count'] = 0
@@ -128,9 +129,8 @@ def autoexp(image_input, image_view, cache):
                       f"--set-ctrl=exposure_absolute={int(exp_new)}")
             time.sleep(0.1)
 
-        logging.debug(f"PID exp: {int(exp_new)} err:{error:.0f} P:{Kp*error:.1f} "
-                     f"I:{Ki*pid['integral']:.1f} D:{Kd*derivative:.1f} "
-                     f"stable:{pid['stable_count']}/{stable_frames}")
+        logging.debug(f"PID exp:{int(exp_new)} max:{r} err:{error:.3f} "
+                     f"corr:{correction:.4f} stable:{pid['stable_count']}/{stable_frames}")
 
         if cache['DEBUG']:
             ok_str = "OK" if cache['autoexp_ok'] else "..."

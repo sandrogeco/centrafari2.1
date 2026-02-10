@@ -23,7 +23,7 @@ def encode_response(p, cache=None):
 
     Args:
         p: Dict con i parametri da inviare
-           (posiz_pattern_x, posiz_pattern_y, lux, roll, yaw, pitch, left, right, up, down)
+           (posiz_pattern_x, posiz_pattern_y, px_lux, roll, yaw, pitch, left, right, up, down)
         cache: Cache con config e stato_comunicazione (per calibrazione e UM)
 
     Returns:
@@ -32,12 +32,12 @@ def encode_response(p, cache=None):
     # Estrai valori pixel
     pixel_x = p['posiz_pattern_x']
     pixel_y = p['posiz_pattern_y']
-    lux = p['lux']
+    px_lux = p['px_lux']
 
     # Default: output in pixel
     out_x = pixel_x
     out_y = pixel_y
-    out_lux = lux
+    out_lux = px_lux
 
     # Applica calibrazione e conversione UM se cache disponibile
     if cache:
@@ -83,11 +83,11 @@ def encode_response(p, cache=None):
         # Conversione: candela = lux × d² = lux × 625 (a 25m)
         umb = int(stato.get('UMB', 0))
         if umb == 0:  # lux/25m (default, nessuna conversione)
-            out_lux = lux
+            out_lux = px_lux
         elif umb == 1:  # Kcandles/1m = lux × 625 / 1000
-            out_lux = lux * 0.625
+            out_lux = px_lux * 0.625
         elif umb == 2:  # KLux/1m = lux × 625 / 1000
-            out_lux = lux * 0.625
+            out_lux = px_lux * 0.625
 
     if USE_NEW_FORMAT:
         msg = (
@@ -213,7 +213,7 @@ def thread_comunicazione(port, cache):
             if ready:
                 data = conn.recv(1024).decode("UTF-8")
                 if data:
-                    logging.debug(f"[RX] {data}")
+                    logging.info(f"[RX] {data}")
                     decode_cmd1(data, cache['stato_comunicazione'])
                     # Converti incl da % a pixel
                     if 'incl' in cache['stato_comunicazione']:

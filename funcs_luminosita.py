@@ -4,7 +4,7 @@ import cv2
 from utils import disegna_rettangolo, get_colore
 import logging
 
-def calcola_lux(image_input, image_output, point, offset, dim, cache):
+def calcola_px_lux(image_input, image_output, point, offset, dim, cache):
     x0 = int(point[0] + offset[0] - dim[0] / 2)
     x1 = int(point[0] + offset[0] + dim[0] / 2)
     y0 = int(point[1] + offset[1] - dim[1] / 2)

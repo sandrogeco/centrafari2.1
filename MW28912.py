@@ -34,7 +34,7 @@ from funcs_misc import (
     is_punto_ok
 )
 from funcs_anabbagliante import rileva_punto_angoloso, rileva_punto_angoloso1
-from funcs_luminosita import calcola_lux
+from funcs_luminosita import calcola_px_lux
 from camera import set_camera, apri_camera, autoexp
 from comms import thread_comunicazione
 from utils import uccidi_processo, get_colore, disegna_segmento
@@ -227,13 +227,13 @@ def show_frame(cache, lmain):
     lux_size = (config['lux_w'], config['lux_h'])
 
     if point:
-        lux = calcola_lux(
+        px_lux = calcola_px_lux(
             image_input, image_output, point,
             (sft_x, sft_y), lux_size, cache
         )
     else:
         center_point = (config['width'] / 2, config['height'] / 2)
-        lux = calcola_lux(
+        px_lux = calcola_px_lux(
             image_input, image_output, center_point,
             (sft_x, sft_y), lux_size, cache
         )
@@ -293,7 +293,7 @@ def show_frame(cache, lmain):
         data = {
             'posiz_pattern_x': point[0],
             'posiz_pattern_y': point[1],
-            'lux': lux,
+            'px_lux': px_lux,
             'yaw': angles[0],
             'pitch': angles[1],
             'roll': angles[2],
@@ -306,7 +306,7 @@ def show_frame(cache, lmain):
         data = {
             'posiz_pattern_x': 0,
             'posiz_pattern_y': 0,
-            'lux': lux,
+            'px_lux': px_lux,
             'yaw': 0,
             'pitch': 0,
             'roll': 0,

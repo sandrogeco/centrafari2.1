@@ -22,8 +22,8 @@
     "cam_c": 0,
     "port": 28500,
     "crop_center": [
-        323,
-        216
+        325,
+        168
     ],
     "margin_r": 0.1,
     "margin_l": 0.1,
@@ -31,5 +31,15 @@
     "y_coeff_pixel_m": 1.375,
     "TOH": 10,
     "TOV": 10,
-    "y_calib_m": -12.68579268757734
+    "autoexp_Kp": 0.5,
+    "autoexp_Ki": 0.05,
+    "autoexp_Kd": 0.1,
+    "autoexp_setpoint": 237,
+    "autoexp_stable_tol": 3,
+    "autoexp_stable_frames": 5,
+    "autoexp_exp_min": 50,
+    "autoexp_exp_max": 10000,
+    "autoexp_integral_max": 500,
+    "ip": "192.168.194.127",
+    "y_calib_m": -0.685792690580854
 }

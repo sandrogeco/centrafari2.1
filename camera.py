@@ -27,7 +27,7 @@ def set_camera(i, config):
     except Exception as e:
         logging.error(f"error: {e}")
 
-def autoexp(image_input,image_view,cache):
+def autoexp_legacy(image_input,image_view,cache):
     cache['autoexp_ok'] = True
 
     try:
@@ -63,6 +63,85 @@ def autoexp(image_input,image_view,cache):
                     cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, get_colore('green'), 1)
     except Exception as e:
         logging.error(f"error: {e}")
+    return image_view
+
+
+def autoexp(image_input, image_view, cache):
+    """
+    Controllo PID esposizione automatica.
+    Setpoint: max pixel = autoexp_setpoint (default 237).
+    autoexp_ok = True quando errore stabile per N frame consecutivi.
+    """
+    config = cache['config']
+    pid = cache.get('autoexp_pid')
+
+    # Inizializza stato PID al primo frame
+    if pid is None:
+        pid = {
+            'integral': 0.0,
+            'prev_error': 0.0,
+            'stable_count': 0,
+        }
+        cache['autoexp_pid'] = pid
+
+    # Parametri PID da config
+    Kp = config.get('autoexp_Kp', 0.5)
+    Ki = config.get('autoexp_Ki', 0.05)
+    Kd = config.get('autoexp_Kd', 0.1)
+    setpoint = config.get('autoexp_setpoint', 237)
+    stable_tol = config.get('autoexp_stable_tol', 3)
+    stable_frames = config.get('autoexp_stable_frames', 5)
+    exp_min = config.get('autoexp_exp_min', 50)
+    exp_max = config.get('autoexp_exp_max', 10000)
+    integral_max = config.get('autoexp_integral_max', 500)
+
+    try:
+        r = np.max(image_input)
+        error = setpoint - r
+
+        # PID
+        pid['integral'] += error
+        # Anti-windup
+        pid['integral'] = np.clip(pid['integral'], -integral_max, integral_max)
+        derivative = error - pid['prev_error']
+        pid['prev_error'] = error
+
+        output = Kp * error + Ki * pid['integral'] + Kd * derivative
+
+        # Applica correzione all'esposizione
+        exp_old = config['exposure_absolute']
+        exp_new = exp_old + output
+        exp_new = np.clip(exp_new, exp_min, exp_max)
+        config['exposure_absolute'] = float(exp_new)
+
+        # Stabilità: errore entro tolleranza per N frame consecutivi
+        if abs(error) <= stable_tol:
+            pid['stable_count'] += 1
+        else:
+            pid['stable_count'] = 0
+
+        cache['autoexp_ok'] = pid['stable_count'] >= stable_frames
+
+        # Applica esposizione se cambiata
+        if int(exp_new) != int(exp_old):
+            os.system(f"v4l2-ctl --device /dev/video{config['indice_camera']} "
+                      f"--set-ctrl=exposure_absolute={int(exp_new)}")
+            time.sleep(0.1)
+
+        logging.debug(f"PID exp: {int(exp_new)} err:{error:.0f} P:{Kp*error:.1f} "
+                     f"I:{Ki*pid['integral']:.1f} D:{Kd*derivative:.1f} "
+                     f"stable:{pid['stable_count']}/{stable_frames}")
+
+        if cache['DEBUG']:
+            ok_str = "OK" if cache['autoexp_ok'] else "..."
+            msg = f"max:{r} mean:{int(np.mean(image_input))} exp:{int(exp_new)} [{ok_str}]"
+            cv2.putText(image_view, msg, (5, 80),
+                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, get_colore('green'), 1)
+
+    except Exception as e:
+        logging.error(f"autoexp PID error: {e}")
+        cache['autoexp_ok'] = True
+
     return image_view
 
 

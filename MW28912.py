@@ -172,6 +172,11 @@ def show_frame(cache, lmain):
     if tipo_faro == 'calibrazione' and cache.get('calibration_manager') and cache['calibration_manager'].calibration_active:
         calibration_manager = cache['calibration_manager']
 
+        # Step 1: salva media pixel intera immagine (riferimento buio)
+        if calibration_manager.current_step == 1:
+            import numpy as np
+            cache['calib_px_lux_dark'] = float(np.mean(image_input))
+
         # Step 3: esegui detection per mostrare punto e linee
         if calibration_manager.current_step == 3:
             results = fari_detection.detect_anabbagliante(
@@ -237,6 +242,12 @@ def show_frame(cache, lmain):
             image_input, image_output, center_point,
             (sft_x, sft_y), lux_size, cache
         )
+
+    # Salva px_lux per calibrazione step 3
+    if (cache.get('calibration_manager') and
+        cache['calibration_manager'].calibration_active and
+        cache['calibration_manager'].current_step == 3 and point):
+        cache['calib_px_lux_bright'] = px_lux
 
     # ====================
     # 6. POST-PROCESSING

@@ -334,8 +334,11 @@ class CalibrationManager:
         """
         logging.info(f"Step 1 (buio) - Click ricevuto: ({x}, {y})")
 
-        # TODO: Implementare logica acquisizione buio
-        # Per ora: un click completa lo step
+        # Salva px_lux dark (media intera immagine a faro spento)
+        px_lux_dark = cache.get('calib_px_lux_dark', 0)
+        self.cache['config']['px_lux_dark'] = px_lux_dark
+        logging.info(f"Step 1: px_lux_dark = {px_lux_dark:.3f}")
+
         self._advance_to_next_step()
         return False  # Calibrazione continua con step successivo
 
@@ -452,8 +455,29 @@ class CalibrationManager:
                     f"centro=({center_x:.1f}, {center_y:.1f}), "
                     f"calib_m={calib_m:.3f} px/%")
 
-        # Salva in config (solo m, q=center è implicito)
+        # Salva in config
         self.cache['config']['y_calib_m'] = calib_m
+
+        # Calibrazione luminosità: calcolo lux_m e lux_q
+        # px_lux_dark -> 0 lux, px_lux_bright -> luxnom lux
+        # lux = lux_m * px_lux + lux_q
+        px_lux_dark = self.cache['config'].get('px_lux_dark', 0)
+        px_lux_bright = cache.get('calib_px_lux_bright', 0)
+        luxnom = float(cache.get('stato_comunicazione', {}).get('luxnom', 0))
+
+        self.cache['config']['px_lux_bright'] = px_lux_bright
+
+        delta = px_lux_bright - px_lux_dark
+        if abs(delta) > 0.01 and luxnom > 0:
+            lux_m = luxnom / delta
+            lux_q = -lux_m * px_lux_dark
+            self.cache['config']['lux_m'] = lux_m
+            self.cache['config']['lux_q'] = lux_q
+            logging.info(f"Step 3: lux_m={lux_m:.4f}, lux_q={lux_q:.4f} "
+                        f"(dark={px_lux_dark:.3f}, bright={px_lux_bright:.3f}, luxnom={luxnom:.1f})")
+        else:
+            logging.warning(f"Step 3: calibrazione lux non possibile "
+                          f"(delta={delta:.3f}, luxnom={luxnom:.1f})")
 
         # Salva config.json
         try:

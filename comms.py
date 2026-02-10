@@ -79,15 +79,21 @@ def encode_response(p, cache=None):
         umh = int(stato.get('UMH', 0))
         # TODO: applicare se necessario
 
+        # Calibrazione luminosità: px_lux -> lux reali
+        # lux = lux_m * px_lux + lux_q
+        lux_m = config.get('lux_m', 1.0)
+        lux_q = config.get('lux_q', 0.0)
+        lux_cal = lux_m * px_lux + lux_q
+
         # UMB: unità misura luminosità (0=lux/25m, 1=Kcandles/1m, 2=KLux/1m)
         # Conversione: candela = lux × d² = lux × 625 (a 25m)
         umb = int(stato.get('UMB', 0))
         if umb == 0:  # lux/25m (default, nessuna conversione)
-            out_lux = px_lux
+            out_lux = lux_cal
         elif umb == 1:  # Kcandles/1m = lux × 625 / 1000
-            out_lux = px_lux * 0.625
+            out_lux = lux_cal * 0.625
         elif umb == 2:  # KLux/1m = lux × 625 / 1000
-            out_lux = px_lux * 0.625
+            out_lux = lux_cal * 0.625
 
     if USE_NEW_FORMAT:
         msg = (
@@ -220,6 +226,12 @@ def thread_comunicazione(port, cache):
                         incl_percent = float(cache['stato_comunicazione']['incl'])
                         calib_m = cache['config'].get('y_calib_m', 1.0)
                         cache['stato_comunicazione']['incl'] = int(incl_percent * calib_m)
+                    # Converti luxnom in float
+                    if 'luxnom' in cache['stato_comunicazione']:
+                        try:
+                            cache['stato_comunicazione']['luxnom'] = float(cache['stato_comunicazione']['luxnom'])
+                        except ValueError:
+                            pass
                 else:
                     logging.warning("Connessione chiusa dal server")
                     conn.close()

@@ -359,6 +359,12 @@ def show_frame(cache, lmain):
         )
         cache['t0'] = t0
 
+        # Autoexp debug
+        autoexp_msg = cache.get('autoexp_debug_msg')
+        if autoexp_msg:
+            cv2.putText(image_output, autoexp_msg, (5, 80),
+                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, get_colore('green'), 1)
+
     # Gestione rot (0=normale, 1=ruotato 180°)
     rot = int(stato_comunicazione.get('rot', 0))
 

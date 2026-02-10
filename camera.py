@@ -97,8 +97,9 @@ def autoexp(image_input, image_view, cache):
 
     try:
         r = np.max(image_input)
+        exp_old = config['exposure_absolute']
 
-        # Errore normalizzato: quanto % siamo lontani dal target
+        # Errore normalizzato
         error = (setpoint - r) / setpoint
 
         # PID su errore normalizzato
@@ -113,11 +114,14 @@ def autoexp(image_input, image_view, cache):
         max_corr = config.get('autoexp_max_corr', 0.2)
         correction = np.clip(correction, -max_corr, max_corr)
 
-        # Applica correzione moltiplicativa: exp_new = exp_old * (1 + correction)
-        exp_old = config['exposure_absolute']
+        # Applica correzione moltiplicativa
         exp_new = exp_old * (1.0 + correction)
         exp_new = np.clip(exp_new, exp_min, exp_max)
         config['exposure_absolute'] = float(exp_new)
+
+        os.system(f"v4l2-ctl --device /dev/video{config['indice_camera']} "
+                  f"--set-ctrl=exposure_absolute={int(exp_new)}")
+        time.sleep(0.1)
 
         # Stabilità: max pixel entro tolleranza dal setpoint per N frame
         if abs(r - setpoint) <= stable_tol:
@@ -127,23 +131,13 @@ def autoexp(image_input, image_view, cache):
 
         cache['autoexp_ok'] = pid['stable_count'] >= stable_frames
 
-        # Applica esposizione sempre
-        os.system(f"v4l2-ctl --device /dev/video{config['indice_camera']} "
-                  f"--set-ctrl=exposure_absolute={int(exp_new)}")
-        time.sleep(0.1)
-
-        logging.debug(f"PID exp:{int(exp_new)} max:{r} err:{error:.3f} "
-                     f"corr:{correction:.4f} stable:{pid['stable_count']}/{stable_frames}")
-
-        if cache['DEBUG']:
-            ok_str = "OK" if cache['autoexp_ok'] else "..."
-            msg = f"max:{r} mean:{int(np.mean(image_input))} exp:{int(exp_new)} [{ok_str}]"
-            cv2.putText(image_view, msg, (5, 80),
-                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, get_colore('green'), 1)
+        # Salva info debug per disegno su image_output
+        ok_str = "OK" if cache['autoexp_ok'] else "..."
+        cache['autoexp_debug_msg'] = f"max:{r} mean:{int(np.mean(image_input))} exp:{int(exp_new)} [{ok_str}]"
 
     except Exception as e:
         logging.error(f"autoexp PID error: {e}")
-        cache['autoexp_ok'] = True
+        cache['autoexp_ok'] = False
 
     return image_view
 

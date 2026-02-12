@@ -89,7 +89,7 @@ int main(void)
         printf("roll = %s\n", valore);
 
     if (decode("left", test, valore, sizeof(valore)))
-        printf("left = %s\n", valore);
+        printf("left = %s\n", valore);  
 
     if (decode("nonexist", test, valore, sizeof(valore)))
         printf("nonexist = %s\n", valore);

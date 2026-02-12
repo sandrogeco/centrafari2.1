@@ -1,15 +1,13 @@
-# Dipendenze Python per Centrafari
-
-# Computer Vision
-opencv-python>=4.8.0
-opencv-contrib-python>=4.8.0
-
-# Scientific Computing
-numpy>=1.24.0
-scipy>=1.10.0
-
-# Image Processing
-Pillow>=10.0.0
-
-# Note: tkinter è incluso nella distribuzione Python standard
-# In ambienti dove non è disponibile, installare python3-tk tramite apt
+contourpy==1.3.3
+cycler==0.12.1
+fonttools==4.61.1
+kiwisolver==1.4.9
+matplotlib==3.10.8
+numpy==2.4.1
+opencv-python==4.13.0.90
+packaging==26.0
+pillow==12.1.0
+pyparsing==3.3.2
+python-dateutil==2.9.0.post0
+scipy==1.17.0
+six==1.17.0

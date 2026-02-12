@@ -33,7 +33,7 @@
     "TOV":10,
     "autoexp_Kp": 2.0,
     "autoexp_Ki": 0.2,
-    "autoexp_Kd": 0.5,
+    "autoexp_Kd": 0.001,
     "autoexp_setpoint": 230,
     "autoexp_stable_tol": 5,
     "autoexp_stable_frames": 10,
@@ -41,6 +41,7 @@
     "autoexp_exp_max": 10000,
     "autoexp_exp_start": 200,
     "autoexp_max_corr": 0.2,
+    "autoexp_deadband": 2,
     "autoexp_integral_max": 2.0,
     "ip":"192.168.194.127"
 }

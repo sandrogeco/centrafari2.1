@@ -119,7 +119,7 @@ def autoexp(image_input, image_view, cache):
         exp_new = np.clip(exp_new, exp_min, exp_max)
         config['exposure_absolute'] = float(exp_new)
 
-        os.system(f"v4l2-ctl --device /dev/video{config['indice_camera']} "
+        os.system(f"v4l2-ctl --device /dev/video0 "
                   f"--set-ctrl=exposure_absolute={int(exp_new)}")
         time.sleep(0.1)
 

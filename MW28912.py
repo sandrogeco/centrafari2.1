@@ -183,7 +183,7 @@ def show_frame(cache, lmain):
         # Step 1: salva media pixel intera immagine (riferimento buio)
         if calibration_manager.current_step == 1:
             import numpy as np
-            cache['calib_px_lux_dark'] = float(np.mean(image_input))
+            cache['calib_px_lux_dark'] = 0.0
 
         # Step 3: esegui detection per mostrare punto e linee
         if calibration_manager.current_step == 3:
@@ -256,6 +256,8 @@ def show_frame(cache, lmain):
             image_input, image_output, center_point,
             (sft_x, sft_y), lux_size, cache
         )
+
+    cache['px_lux'] = px_lux
 
     # Salva px_lux per calibrazione step 3
     if (cache.get('calibration_manager') and

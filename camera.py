@@ -133,7 +133,8 @@ def autoexp(image_input, image_view, cache):
 
         # Salva info debug per disegno su image_output
         ok_str = "OK" if cache['autoexp_ok'] else "..."
-        cache['autoexp_debug_msg'] = f"max:{r} mean:{int(np.mean(image_input))} exp:{int(exp_new)} [{ok_str}]"
+        px_lux = cache.get('px_lux', 0)
+        cache['autoexp_debug_msg'] = f"max:{r} mean:{int(np.mean(image_input))} exp:{int(exp_new)} px_lux:{px_lux:.1f} [{ok_str}]"
 
     except Exception as e:
         logging.error(f"autoexp PID error: {e}")

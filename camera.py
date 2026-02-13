@@ -98,30 +98,35 @@ def autoexp(image_input, image_view, cache):
     try:
         r = np.max(image_input)
         exp_old = config['exposure_absolute']
+        deadband = config.get('autoexp_deadband', 2)
 
-        # Errore normalizzato
-        error = (setpoint - r) / setpoint
+        if abs(setpoint - r) <= deadband:
+            # Banda morta: freeze esposizione e PID
+            exp_new = exp_old
+        else:
+            # Errore normalizzato
+            error = (setpoint - r) / setpoint
 
-        # PID su errore normalizzato
-        pid['integral'] += error
-        pid['integral'] = np.clip(pid['integral'], -integral_max, integral_max)
-        derivative = error - pid['prev_error']
-        pid['prev_error'] = error
+            # PID su errore normalizzato
+            pid['integral'] += error
+            pid['integral'] = np.clip(pid['integral'], -integral_max, integral_max)
+            derivative = error - pid['prev_error']
+            pid['prev_error'] = error
 
-        correction = Kp * error + Ki * pid['integral'] + Kd * derivative
+            correction = Kp * error + Ki * pid['integral'] + Kd * derivative
 
-        # Limita correzione massima per frame (es. ±20%)
-        max_corr = config.get('autoexp_max_corr', 0.2)
-        correction = np.clip(correction, -max_corr, max_corr)
+            # Limita correzione massima per frame (es. ±20%)
+            max_corr = config.get('autoexp_max_corr', 0.2)
+            correction = np.clip(correction, -max_corr, max_corr)
 
-        # Applica correzione moltiplicativa
-        exp_new = exp_old * (1.0 + correction)
-        exp_new = np.clip(exp_new, exp_min, exp_max)
-        config['exposure_absolute'] = float(exp_new)
+            # Applica correzione moltiplicativa
+            exp_new = exp_old * (1.0 + correction)
+            exp_new = np.clip(exp_new, exp_min, exp_max)
+            config['exposure_absolute'] = float(exp_new)
 
-        os.system(f"v4l2-ctl --device /dev/video0 "
-                  f"--set-ctrl=exposure_absolute={int(exp_new)}")
-        time.sleep(0.1)
+            os.system(f"v4l2-ctl --device /dev/video0 "
+                      f"--set-ctrl=exposure_absolute={int(exp_new)}")
+            time.sleep(0.1)
 
         # Stabilità: max pixel entro tolleranza dal setpoint per N frame
         if abs(r - setpoint) <= stable_tol:

@@ -88,6 +88,19 @@ def show_frame(cache, lmain):
         lmain: Widget Label di tkinter per visualizzare l'immagine
     """
     # ====================
+    # 0. HOT RELOAD CONFIG
+    # ====================
+    config_file = os.path.join(cache['percorso_script'], 'config.json')
+    try:
+        mtime = os.path.getmtime(config_file)
+        if mtime != cache.get('config_mtime', 0):
+            cache['config_mtime'] = mtime
+            init_config('config.json', cache, cache['percorso_script'])
+            logging.info("Config ricaricata (file modificato)")
+    except Exception as e:
+        logging.error(f"Errore hot reload config: {e}")
+
+    # ====================
     # 1. GESTIONE VISIBILITÀ FINESTRA
     # ====================
     root = lmain.master
@@ -167,15 +180,16 @@ def show_frame(cache, lmain):
     cache['prev_tipo_faro'] = tipo_faro
 
     if tipo_faro == 'calibrazione':
-        # Crea CalibrationManager on-demand se non esiste
-        if 'calibration_manager' not in cache:
+        # Transizione da altro tipo_faro -> calibrazione: ricrea e avvia
+        if prev_tipo_faro != 'calibrazione':
             cache['calibration_manager'] = CalibrationManager(cache['percorso_script'], cache)
+            cache['calibration_manager'].start_calibration()
+        # Crea CalibrationManager on-demand se non esiste
+        elif 'calibration_manager' not in cache:
+            cache['calibration_manager'] = CalibrationManager(cache['percorso_script'], cache)
+            cache['calibration_manager'].start_calibration()
 
         calibration_manager = cache['calibration_manager']
-
-        # Avvia calibrazione solo su transizione da altro tipo_faro
-        if not calibration_manager.calibration_active and prev_tipo_faro != 'calibrazione':
-            calibration_manager.start_calibration()
 
     if tipo_faro == 'calibrazione' and cache.get('calibration_manager') and cache['calibration_manager'].calibration_active:
         calibration_manager = cache['calibration_manager']

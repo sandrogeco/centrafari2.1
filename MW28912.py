@@ -112,7 +112,10 @@ def show_frame(cache, lmain):
     # Transizione run 0→1: reset PID autoexp e riparti da esposizione iniziale
     if should_show and not prev_run:
         cache['autoexp_pid'] = None
-        cache['config']['exposure_absolute'] = cache['config'].get('autoexp_exp_start', 200)
+        exp_start = cache['config'].get('autoexp_exp_start', 200)
+        cache['config']['exposure_absolute'] = exp_start
+        os.system(f"v4l2-ctl --device /dev/video0 "
+                  f"--set-ctrl=exposure_absolute={int(exp_start)}")
         logging.info("Run 0→1: reset autoexp PID")
 
     current_state = root.state()
@@ -380,6 +383,16 @@ def show_frame(cache, lmain):
         if autoexp_msg:
             cv2.putText(image_output, autoexp_msg, (5, 80),
                     cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, get_colore('green'), 1)
+
+    # Indicatore autoexp: cerchio verde=ok, rosso lampeggiante=non ok
+    h_out, w_out = image_output.shape[:2]
+    indicator_pos = (w_out - 15, 15)
+    if cache.get('autoexp_ok', False):
+        cv2.circle(image_output, indicator_pos, 8, get_colore('green'), -1)
+    else:
+        cache['blink_count'] = cache.get('blink_count', 0) + 1
+        if cache['blink_count'] % 2 == 0:
+            cv2.circle(image_output, indicator_pos, 8, get_colore('red'), -1)
 
     # Gestione rot (0=normale, 1=ruotato 180°)
     rot = int(stato_comunicazione.get('rot', 0))

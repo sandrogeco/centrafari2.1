@@ -80,7 +80,7 @@ def autoexp(image_input, image_view, cache):
         pid = {
             'integral': 0.0,
             'prev_error': 0.0,
-            'stable_count': 0,
+            'stable_since': None,
         }
         cache['autoexp_pid'] = pid
 
@@ -90,7 +90,7 @@ def autoexp(image_input, image_view, cache):
     Kd = config.get('autoexp_Kd', 0.5)
     setpoint = config.get('autoexp_setpoint', 237)
     stable_tol = config.get('autoexp_stable_tol', 5)
-    stable_frames = config.get('autoexp_stable_frames', 10)
+    stable_time = config.get('autoexp_stable_time', 1.0)
     exp_min = config.get('autoexp_exp_min', 50)
     exp_max = config.get('autoexp_exp_max', 10000)
     integral_max = config.get('autoexp_integral_max', 2.0)
@@ -128,13 +128,15 @@ def autoexp(image_input, image_view, cache):
                       f"--set-ctrl=exposure_absolute={int(exp_new)}")
             time.sleep(0.1)
 
-        # Stabilità: max pixel entro tolleranza dal setpoint per N frame
+        # Stabilità: max pixel entro tolleranza per stable_time secondi
         if abs(r - setpoint) <= stable_tol:
-            pid['stable_count'] += 1
+            if pid['stable_since'] is None:
+                pid['stable_since'] = time.monotonic()
         else:
-            pid['stable_count'] = 0
+            pid['stable_since'] = None
 
-        cache['autoexp_ok'] = pid['stable_count'] >= stable_frames
+        stable_elapsed = time.monotonic() - pid['stable_since'] if pid['stable_since'] else 0
+        cache['autoexp_ok'] = stable_elapsed >= stable_time
 
         # Salva info debug per disegno su image_output
         ok_str = "OK" if cache['autoexp_ok'] else "..."

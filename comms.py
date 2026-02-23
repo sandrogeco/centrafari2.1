@@ -55,10 +55,10 @@ def encode_response(p, cache=None):
         # incl già convertito in pixel nel thread
         incl_pixel = int(stato.get('incl', 0))
 
-        # Calcola percentuale rispetto a centro + inclinazione
+        # Calcola percentuale rispetto a centro
         if abs(calib_m) > 0.01:
             perc_x = (pixel_x - center_x) / calib_m
-            perc_y = (pixel_y - (center_y + incl_pixel)) / calib_m
+            perc_y = (pixel_y - center_y) / calib_m
         else:
             perc_x = pixel_x
             perc_y = pixel_y

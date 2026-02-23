@@ -202,8 +202,8 @@ def show_frame(cache, lmain):
             import numpy as np
             cache['calib_px_lux_dark'] = 0.0
 
-        # Step 3: esegui detection per mostrare punto e linee
-        if calibration_manager.current_step == 3:
+        # Step 3-4: esegui detection per mostrare punto e linee
+        if calibration_manager.current_step in [3, 4]:
             results = fari_detection.detect_anabbagliante(
                 image_input, cache, 5, 40, 120, 1e-8, 1e-8, 1000
             )
@@ -276,11 +276,17 @@ def show_frame(cache, lmain):
 
     cache['px_lux'] = px_lux
 
-    # Salva px_lux per calibrazione step 3
+    # Salva px_lux per calibrazione step 3 (abbagliante a inclinazione 0)
     if (cache.get('calibration_manager') and
         cache['calibration_manager'].calibration_active and
         cache['calibration_manager'].current_step == 3 and point):
         cache['calib_px_lux_bright'] = px_lux
+
+    # Salva punto per calibrazione step 4 (inclinazione -4%)
+    if (cache.get('calibration_manager') and
+        cache['calibration_manager'].calibration_active and
+        cache['calibration_manager'].current_step == 4 and point):
+        cache['calibration_point'] = point
 
     # ====================
     # 6. POST-PROCESSING

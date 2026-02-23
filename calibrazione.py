@@ -30,13 +30,15 @@ STRINGS_IT = {
     # Nomi degli step (mostrati nella lista a sinistra)
     'step1_name': '1. Calibrazione buio',
     'step2_name': '2. Centraggio',
-    'step3_name': '3. Inclinazione',
+    'step3_name': '3. Attesa autoexp',
+    'step4_name': '4. Inclinazione',
     'step100_name': 'Calibrazione terminata',
 
     # Istruzioni per ogni step (mostrate in basso)
     'step1_instruction': 'Spegnere faro e premere un punto qualsiasi',
     'step2_instruction': 'Accendere a inclinazione 0 e cliccare su punto centrale',
-    'step3_instruction': 'Portare a inclinazione -4% e cliccare per confermare',
+    'step3_instruction': 'Accendi abbagliante a inclinazione 0 e attendi autoexp OK',
+    'step4_instruction': 'Portare a inclinazione -4% e cliccare per confermare',
     'step100_instruction': 'Calibrazione terminata',
 
     # Pulsante termina
@@ -65,7 +67,7 @@ class CalibrationManager:
     """
 
     # Numero totale di step di calibrazione
-    TOTAL_STEPS = 3
+    TOTAL_STEPS = 4
 
     def __init__(self, config_path, cache):
         """
@@ -184,7 +186,9 @@ class CalibrationManager:
         elif self.current_step == 2:
             self._process_step2_centraggio(image_output, cache)
         elif self.current_step == 3:
-            self._process_step3_inclinazione(image_output, cache)
+            self._process_step3_attendi_autoexp(image_output, cache)
+        elif self.current_step == 4:
+            self._process_step4_inclinazione(image_output, cache)
 
         # Disegna pulsante TERMINA
         self._draw_terminate_button(image_output, cache)
@@ -220,6 +224,7 @@ class CalibrationManager:
             (1, STRINGS['step1_name']),
             (2, STRINGS['step2_name']),
             (3, STRINGS['step3_name']),
+            (4, STRINGS['step4_name']),
             (100, STRINGS['step100_name']),
         ]
 
@@ -255,6 +260,7 @@ class CalibrationManager:
             1: STRINGS['step1_instruction'],
             2: STRINGS['step2_instruction'],
             3: STRINGS['step3_instruction'],
+            4: STRINGS['step4_instruction'],
             100: STRINGS['step100_instruction'],
         }
 
@@ -397,24 +403,31 @@ class CalibrationManager:
         return False  # Calibrazione continua
 
     # =========================================================================
-    # STEP 3: INCLINAZIONE
-    # Calibrazione dell'inclinazione del fascio luminoso.
-    # TODO: Implementare calibrazione inclinazione a 4%.
+    # STEP 3: ATTESA AUTOEXP
+    # Attende che autoexp sia stabile prima di procedere.
+    # Avanza automaticamente quando autoexp_ok = True.
     # =========================================================================
 
-    def _process_step3_inclinazione(self, image_output, cache):
+    def _process_step3_attendi_autoexp(self, image_output, cache):
         """
-        Step 3: Inclinazione.
-        Placeholder - da implementare.
+        Step 3: Attende autoexp OK.
+        Avanza automaticamente quando l'esposizione è stabile.
+        """
+        if cache.get('autoexp_ok', False):
+            self._advance_to_next_step()
 
-        Args:
-            image_output: Immagine su cui disegnare
-            cache: Cache con configurazione
+    # =========================================================================
+    # STEP 4: INCLINAZIONE
+    # Calibrazione dell'inclinazione del fascio luminoso.
+    # =========================================================================
+
+    def _process_step4_inclinazione(self, image_output, cache):
         """
-        # TODO: Implementare logica calibrazione inclinazione
+        Step 4: Inclinazione.
+        """
         pass
 
-    def _handle_click_step3(self, x, y, cache):
+    def _handle_click_step4(self, x, y, cache):
         """
         Gestisce il click per lo step 3: inclinazione.
         Rileva punto automaticamente e calcola coefficiente pixel/inclinazione.
@@ -528,8 +541,8 @@ class CalibrationManager:
             return self._handle_click_step1(x, y, cache)
         elif self.current_step == 2:
             return self._handle_click_step2(x, y, cache)
-        elif self.current_step == 3:
-            return self._handle_click_step3(x, y, cache)
+        elif self.current_step == 4:
+            return self._handle_click_step4(x, y, cache)
 
         return False
 

@@ -3,9 +3,15 @@ Modulo per la calibrazione della telecamera.
 Gestisce diversi step di calibrazione in modo modulare.
 
 Step di calibrazione:
-    1. Calibrazione buio - Acquisizione riferimento con faro spento
-    2. Centraggio - Definizione punto centrale del frame
-    3. Inclinazione - Calibrazione inclinazione fascio luminoso
+    1    - Calibrazione buio
+    20   - Accendi anabbagliante incl 0, premi punto
+    21   - Attesa autoexp OK
+    22   - Click su punto centrale (salva crop_center)
+    30   - Accendi abbagliante incl 0, premi punto
+    31   - Attesa autoexp OK (salva px_lux_bright_abb)
+    40   - Porta anabbagliante a incl -4%, premi punto
+    41   - Attesa autoexp OK (calcola y_calib_m, lux_m/q, lux_m_abb/q_abb)
+    100  - Calibrazione terminata
 """
 
 import cv2
@@ -16,115 +22,83 @@ from utils import get_colore
 import fari_detection
 
 
-# =============================================================================
-# STRINGHE LOCALIZZABILI
-# Dizionario per supporto multilingua. Chiave = codice stringa, valore = testo.
-# Per aggiungere una lingua: creare nuovo dizionario (es. STRINGS_EN) e
-# selezionarlo in base alla configurazione.
-# =============================================================================
-
 STRINGS_IT = {
-    # Titolo sezione calibrazione
     'title': 'Calibrazione',
 
-    # Nomi degli step (mostrati nella lista a sinistra)
-    'step1_name': '1. Calibrazione buio',
-    'step2_name': '2. Centraggio',
-    'step3_name': '3. Attesa autoexp',
-    'step4_name': '4. Inclinazione',
+    # Nomi gruppi (lista a sinistra)
+    'step1_name':   '1. Calibrazione buio',
+    'step2_name':   '2. Centraggio',
+    'step3_name':   '3. Lum. abbagliante',
+    'step4_name':   '4. Inclinazione',
     'step100_name': 'Calibrazione terminata',
 
-    # Istruzioni per ogni step (mostrate in basso)
-    'step1_instruction': 'Spegnere faro e premere un punto qualsiasi',
-    'step2_instruction': 'Accendere a inclinazione 0 e cliccare su punto centrale',
-    'step3_instruction': 'Accendi abbagliante a inclinazione 0 e attendi autoexp OK',
-    'step4_instruction': 'Portare a inclinazione -4% e cliccare per confermare',
+    # Istruzioni per substep
+    'step1_instruction':   'Spegnere faro e premere un punto qualsiasi',
+    'step20_instruction':  'Accendere anabbagliante a inclinazione 0 e premere un punto qualsiasi',
+    'step21_instruction':  'Attendere autoexp OK...',
+    'step22_instruction':  'Cliccare sul punto centrale',
+    'step30_instruction':  'Accendere abbagliante a inclinazione 0 e premere un punto qualsiasi',
+    'step31_instruction':  'Attendere autoexp OK...',
+    'step40_instruction':  'Portare anabbagliante a inclinazione -4% e premere un punto qualsiasi',
+    'step41_instruction':  'Attendere autoexp OK...',
     'step100_instruction': 'Calibrazione terminata',
 
-    # Pulsante termina
     'btn_terminate': 'TERMINA',
 }
 
-# Lingua attiva (per ora solo italiano, in futuro selezionabile)
 STRINGS = STRINGS_IT
 
 
 class CalibrationManager:
     """
     Gestisce il processo di calibrazione multi-step.
-
-    Step disponibili:
-        - Step 1: Calibrazione buio (placeholder - da implementare)
-        - Step 2: Centraggio telecamera (crop_center)
-        - Step 3: Inclinazione (placeholder - da implementare)
-
-    Attributi:
-        config_path: Path alla directory dei file di configurazione
-        cache: Dizionario cache condiviso con MW28912
-        current_step: Step attualmente attivo (1-3)
-        steps_completed: Set degli step completati
-        calibration_active: True se calibrazione in corso
     """
 
-    # Numero totale di step di calibrazione
-    TOTAL_STEPS = 4
+    STEP_SEQUENCE = [1, 20, 21, 22, 30, 31, 40, 41]
+
+    # Mappa substep -> numero gruppo UI
+    STEP_GROUP = {
+        1: 1,
+        20: 2, 21: 2, 22: 2,
+        30: 3, 31: 3,
+        40: 4, 41: 4,
+        100: 100
+    }
+
+    # Ultimo substep di ogni gruppo (per determinare spunta completato)
+    GROUP_LAST = {1: 1, 2: 22, 3: 31, 4: 41, 100: 100}
 
     def __init__(self, config_path, cache):
-        """
-        Inizializza il gestore di calibrazione.
-
-        Args:
-            config_path: Path alla directory contenente i file di configurazione
-            cache: Dizionario cache condiviso con MW28912
-        """
         self.config_path = config_path
         self.default_file = os.path.join(config_path, "default.json")
         self.config_file = os.path.join(config_path, "config.json")
         self.cache = cache
 
-        # Stato calibrazione
         self.current_step = 0
         self.step_data = {}
         self.calibration_active = False
-
-        # Set degli step completati (per mostrare spunta)
         self.steps_completed = set()
-
-        # Area pulsante "TERMINA CALIBRAZIONE" (x, y, w, h)
         self.exit_button_rect = None
 
     def start_calibration(self):
-        """
-        Avvia la procedura di calibrazione.
-        Carica default.json in cache e inizializza lo step 1.
-        """
         logging.info("Avvio calibrazione: caricamento default.json in cache")
 
-        # Carica default.json in cache (invece di copiare file)
         init_config = self.cache.get('init_config')
         if init_config:
             init_config("default.json")
-            logging.info("Configurazione default caricata in cache")
         else:
             logging.warning("init_config non disponibile in cache")
 
-        # Reset stato
         self.steps_completed = set()
         self.calibration_active = True
-
-        # Inizia da step 1 (calibrazione buio)
         self.current_step = 1
-        self.step_data = {
-            'state': 0,  # Stato iniziale per ogni step
-        }
+        self.step_data = {'state': 0}
 
         logging.info(f"Calibrazione avviata: step {self.current_step}")
 
     def stop_calibration(self):
-        """Termina la calibrazione, salva config.json e ricarica."""
         logging.info("Calibrazione terminata")
 
-        # Salva cache['config'] su config.json
         try:
             with open(self.config_file, 'w') as f:
                 json.dump(self.cache['config'], f, indent=4)
@@ -132,11 +106,9 @@ class CalibrationManager:
         except Exception as e:
             logging.error(f"Errore nel salvare config.json: {e}")
 
-        # Ricarica config.json in cache
         init_config = self.cache.get('init_config')
         if init_config:
             init_config("config.json")
-            logging.info("Configurazione ricaricata da config.json")
 
         self.calibration_active = False
         self.current_step = 0
@@ -144,140 +116,90 @@ class CalibrationManager:
         self.steps_completed = set()
 
     def _advance_to_next_step(self):
-        """
-        Avanza allo step successivo o termina se completati tutti.
-        Marca lo step corrente come completato prima di avanzare.
-        """
-        # Marca step corrente come completato
         self.steps_completed.add(self.current_step)
         logging.info(f"Step {self.current_step} completato")
 
-        # Avanza al prossimo step
-        if self.current_step < self.TOTAL_STEPS:
-            self.current_step += 1
-            self.step_data = {'state': 0}  # Reset stato per nuovo step
-            logging.info(f"Avanzamento a step {self.current_step}")
-        else:
-            # Tutti gli step completati - vai a step 100 (schermata finale)
+        try:
+            idx = self.STEP_SEQUENCE.index(self.current_step)
+            if idx + 1 < len(self.STEP_SEQUENCE):
+                self.current_step = self.STEP_SEQUENCE[idx + 1]
+                self.step_data = {'state': 0}
+                logging.info(f"Avanzamento a step {self.current_step}")
+            else:
+                self.current_step = 100
+                logging.info("Tutti gli step completati, mostro schermata finale")
+        except ValueError:
             self.current_step = 100
-            logging.info("Tutti gli step completati, mostro schermata finale")
 
     def process_frame(self, image_output, cache):
-        """
-        Elabora un frame durante la calibrazione.
-        Disegna l'interfaccia di calibrazione sull'immagine.
-
-        Args:
-            image_output: Immagine su cui disegnare
-            cache: Cache con configurazione
-
-        Returns:
-            Immagine con overlay di calibrazione
-        """
         if not self.calibration_active:
             return image_output
 
-        # Disegna interfaccia comune (titolo, lista step, istruzioni)
         self._draw_calibration_ui(image_output, cache)
 
-        # Elabora step specifico
-        if self.current_step == 1:
-            self._process_step1_buio(image_output, cache)
-        elif self.current_step == 2:
-            self._process_step2_centraggio(image_output, cache)
-        elif self.current_step == 3:
-            self._process_step3_attendi_autoexp(image_output, cache)
-        elif self.current_step == 4:
-            self._process_step4_inclinazione(image_output, cache)
+        if self.current_step == 21:
+            self._process_step21(image_output, cache)
+        elif self.current_step == 31:
+            self._process_step31(image_output, cache)
+        elif self.current_step == 41:
+            self._process_step41(image_output, cache)
 
-        # Disegna pulsante TERMINA
         self._draw_terminate_button(image_output, cache)
-
         return image_output
 
     def _draw_calibration_ui(self, image_output, cache):
-        """
-        Disegna l'interfaccia comune di calibrazione:
-        - Titolo "Calibrazione" in alto a sinistra
-        - Lista step con spunte per quelli completati
-        - Istruzione corrente in basso
-
-        Args:
-            image_output: Immagine su cui disegnare
-            cache: Cache con configurazione
-        """
         height = cache['config'].get('height', 320)
 
-        # Colori
         color_title = get_colore('cyan')
         color_active = get_colore('yellow')
         color_completed = get_colore('green')
         color_pending = get_colore('white')
         color_instruction = get_colore('cyan')
 
-        # --- TITOLO ---
         cv2.putText(image_output, STRINGS['title'], (10, 25),
                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, color_title, 2)
 
-        # --- LISTA STEP ---
-        step_names = [
-            (1, STRINGS['step1_name']),
-            (2, STRINGS['step2_name']),
-            (3, STRINGS['step3_name']),
-            (4, STRINGS['step4_name']),
+        group_names = [
+            (1,   STRINGS['step1_name']),
+            (2,   STRINGS['step2_name']),
+            (3,   STRINGS['step3_name']),
+            (4,   STRINGS['step4_name']),
             (100, STRINGS['step100_name']),
         ]
 
-        y_pos = 55  # Posizione Y iniziale per lista step
-        for step_num, step_name in step_names:
+        current_group = self.STEP_GROUP.get(self.current_step, 0)
 
-            # Determina colore e simbolo in base allo stato
-            if step_num in self.steps_completed:
-                # Step completato: verde con spunta
+        y_pos = 55
+        for group_num, group_name in group_names:
+            last_substep = self.GROUP_LAST[group_num]
+            is_completed = last_substep in self.steps_completed
+            is_active = (group_num == current_group)
+
+            if is_completed:
                 color = color_completed
-                check_x = 10
-                check_y = y_pos
-                cv2.line(image_output, (check_x, check_y - 5), (check_x + 5, check_y), color, 2)
-                cv2.line(image_output, (check_x + 5, check_y), (check_x + 15, check_y - 12), color, 2)
+                cv2.line(image_output, (10, y_pos - 5), (15, y_pos), color, 2)
+                cv2.line(image_output, (15, y_pos), (25, y_pos - 12), color, 2)
                 text_x = 30
-            elif step_num == self.current_step:
-                # Step attivo: giallo con indicatore
+            elif is_active:
                 color = color_active
                 cv2.circle(image_output, (15, y_pos - 5), 5, color, -1)
                 text_x = 30
             else:
-                # Step pending: bianco
                 color = color_pending
                 cv2.circle(image_output, (15, y_pos - 5), 5, color, 1)
                 text_x = 30
 
-            cv2.putText(image_output, step_name, (text_x, y_pos),
+            cv2.putText(image_output, group_name, (text_x, y_pos),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
             y_pos += 25
 
-        # --- ISTRUZIONE CORRENTE (in basso) ---
-        instructions = {
-            1: STRINGS['step1_instruction'],
-            2: STRINGS['step2_instruction'],
-            3: STRINGS['step3_instruction'],
-            4: STRINGS['step4_instruction'],
-            100: STRINGS['step100_instruction'],
-        }
-
-        instruction_text = instructions.get(self.current_step, '')
+        instr_key = f'step{self.current_step}_instruction'
+        instruction_text = STRINGS.get(instr_key, '')
         if instruction_text:
-            # Posiziona istruzione in basso a sinistra
             cv2.putText(image_output, instruction_text, (10, height - 15),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_instruction, 1)
 
     def _draw_terminate_button(self, image_output, cache):
-        """
-        Disegna il pulsante TERMINA in basso a destra.
-
-        Args:
-            image_output: Immagine su cui disegnare
-            cache: Cache con configurazione
-        """
         width = cache['config'].get('width', 630)
         height = cache['config'].get('height', 320)
 
@@ -286,16 +208,13 @@ class CalibrationManager:
         btn_x = width - btn_w - 10
         btn_y = height - btn_h - 10
 
-        # Salva area pulsante per rilevamento click
         self.exit_button_rect = (btn_x, btn_y, btn_w, btn_h)
 
-        # Disegna rettangolo pulsante (rosso)
         cv2.rectangle(image_output, (btn_x, btn_y), (btn_x + btn_w, btn_y + btn_h),
                      get_colore('red'), -1)
         cv2.rectangle(image_output, (btn_x, btn_y), (btn_x + btn_w, btn_y + btn_h),
                      get_colore('white'), 2)
 
-        # Testo "TERMINA" centrato nel pulsante
         text = STRINGS['btn_terminate']
         font_scale = 0.7
         thickness = 2
@@ -308,83 +227,41 @@ class CalibrationManager:
 
     # =========================================================================
     # STEP 1: CALIBRAZIONE BUIO
-    # Acquisizione riferimento con faro spento.
-    # TODO: Implementare acquisizione e salvataggio riferimento buio.
     # =========================================================================
 
-    def _process_step1_buio(self, image_output, cache):
-        """
-        Step 1: Calibrazione buio.
-        Placeholder - da implementare.
-
-        Args:
-            image_output: Immagine su cui disegnare
-            cache: Cache con configurazione
-        """
-        # TODO: Implementare logica calibrazione buio
-        # Per ora questo step non fa nulla, attende solo un click per avanzare
-        pass
-
     def _handle_click_step1(self, x, y, cache):
-        """
-        Gestisce il click per lo step 1: calibrazione buio.
-        Placeholder - al click avanza allo step successivo.
-
-        Args:
-            x: Coordinata X del click
-            y: Coordinata Y del click
-            cache: Cache con configurazione
-
-        Returns:
-            True se lo step e' completato, False altrimenti
-        """
-        logging.info(f"Step 1 (buio) - Click ricevuto: ({x}, {y})")
-
-        # Salva px_lux dark (media intera immagine a faro spento)
+        logging.info(f"Step 1 (buio) - Click: ({x}, {y})")
         px_lux_dark = cache.get('calib_px_lux_dark', 0)
         self.cache['config']['px_lux_dark'] = px_lux_dark
         logging.info(f"Step 1: px_lux_dark = {px_lux_dark:.3f}")
-
         self._advance_to_next_step()
-        return False  # Calibrazione continua con step successivo
+        return False
 
     # =========================================================================
-    # STEP 2: CENTRAGGIO
-    # Definizione del punto centrale del frame (crop_center).
-    # L'utente clicca sul punto che dovra' essere al centro.
+    # STEP 2.0: ACCENDI ANABBAGLIANTE INCL 0
     # =========================================================================
 
-    def _process_step2_centraggio(self, image_output, cache):
-        """
-        Step 2: Centraggio telecamera (crop_center).
-        Non disegna mirino - solo l'UI comune gia' disegnata.
+    def _handle_click_step20(self, x, y, cache):
+        logging.info(f"Step 20 - Click ricevuto")
+        self._advance_to_next_step()
+        return False
 
-        Args:
-            image_output: Immagine su cui disegnare
-            cache: Cache con configurazione
-        """
-        # Nessun overlay aggiuntivo per questo step
-        # Il mirino blu e' stato rimosso come richiesto
-        pass
+    # =========================================================================
+    # STEP 2.1: ATTENDI AUTOEXP OK
+    # =========================================================================
 
-    def _handle_click_step2(self, x, y, cache):
-        """
-        Gestisce il click per lo step 2: centraggio.
+    def _process_step21(self, image_output, cache):
+        if cache.get('autoexp_ok', False):
+            self._advance_to_next_step()
 
-        Args:
-            x: Coordinata X del click
-            y: Coordinata Y del click
-            cache: Cache con configurazione
+    # =========================================================================
+    # STEP 2.2: CLICK SUL PUNTO CENTRALE
+    # =========================================================================
 
-        Returns:
-            True se lo step e' completato, False altrimenti
-        """
-        logging.info(f"Step 2 (centraggio) - Click ricevuto: ({x}, {y})")
-
-        # Salva coordinate crop_center in cache e config
+    def _handle_click_step22(self, x, y, cache):
+        logging.info(f"Step 22 (centraggio) - Click: ({x}, {y})")
         self.cache['config']['crop_center'] = [x, y]
 
-        # Salva config.json immediatamente
         try:
             with open(self.config_file, 'w') as f:
                 json.dump(self.cache['config'], f, indent=4)
@@ -392,167 +269,140 @@ class CalibrationManager:
         except Exception as e:
             logging.error(f"Errore nel salvare config.json: {e}")
 
-        # Ricarica config.json in cache
         init_config = self.cache.get('init_config')
         if init_config:
             init_config("config.json")
-            logging.info("Configurazione ricaricata")
 
-        # Avanza allo step successivo
         self._advance_to_next_step()
-        return False  # Calibrazione continua
+        return False
 
     # =========================================================================
-    # STEP 3: ATTESA AUTOEXP
-    # Attende che autoexp sia stabile prima di procedere.
-    # Avanza automaticamente quando autoexp_ok = True.
+    # STEP 3.0: ACCENDI ABBAGLIANTE INCL 0
     # =========================================================================
 
-    def _process_step3_attendi_autoexp(self, image_output, cache):
-        """
-        Step 3: Attende autoexp OK.
-        Avanza automaticamente quando l'esposizione è stabile.
-        """
+    def _handle_click_step30(self, x, y, cache):
+        logging.info(f"Step 30 - Click ricevuto")
+        self._advance_to_next_step()
+        return False
+
+    # =========================================================================
+    # STEP 3.1: ATTENDI AUTOEXP OK, SALVA px_lux_bright_abb
+    # =========================================================================
+
+    def _process_step31(self, image_output, cache):
         if cache.get('autoexp_ok', False):
+            px_lux_bright_abb = cache.get('calib_px_lux_bright_abb', 0)
+            self.cache['config']['px_lux_bright_abb'] = px_lux_bright_abb
+            logging.info(f"Step 31: px_lux_bright_abb = {px_lux_bright_abb:.3f}")
             self._advance_to_next_step()
 
     # =========================================================================
-    # STEP 4: INCLINAZIONE
-    # Calibrazione dell'inclinazione del fascio luminoso.
+    # STEP 4.0: PORTA ANABBAGLIANTE A INCL -4%
     # =========================================================================
 
-    def _process_step4_inclinazione(self, image_output, cache):
-        """
-        Step 4: Inclinazione.
-        """
-        pass
+    def _handle_click_step40(self, x, y, cache):
+        logging.info(f"Step 40 - Click ricevuto")
+        self._advance_to_next_step()
+        return False
 
-    def _handle_click_step4(self, x, y, cache):
-        """
-        Gestisce il click per lo step 3: inclinazione.
-        Rileva punto automaticamente e calcola coefficiente pixel/inclinazione.
+    # =========================================================================
+    # STEP 4.1: ATTENDI AUTOEXP OK, CALCOLA TUTTO
+    # =========================================================================
 
-        Args:
-            x: Coordinata X del click
-            y: Coordinata Y del click
-            cache: Cache con configurazione
+    def _process_step41(self, image_output, cache):
+        if cache.get('autoexp_ok', False):
+            self._complete_calibration(cache)
 
-        Returns:
-            True se la calibrazione e' terminata, False altrimenti
-        """
-        logging.info(f"Step 3 (inclinazione) - Click ricevuto")
-
-        # Usa il punto già rilevato da MW28912.py (su immagine preprocessata)
+    def _complete_calibration(self, cache):
+        # --- y_calib_m ---
         punto = cache.get('calibration_point')
         if punto is None:
-            logging.error("Step 3: punto non rilevato, riprova")
-            return False
+            logging.error("Step 41: punto non rilevato, impossibile calcolare y_calib_m")
+            return
 
-        # Calcola coefficiente calibrazione: pixel = m * incl% + center
-        # Riferimento = centro immagine (height/2)
-        # Punto a 4%: pixel=punto.y
-        # m = (punto.y - center) / 4
-        width = cache['config'].get('width', 640)
         height = cache['config'].get('height', 480)
-        center_x = width / 2
         center_y = height / 2
-
-        # m = pendenza (pixel per 1% di inclinazione, calibrazione a -4%)
         calib_m = (punto[1] - center_y) / -4.0
 
         if abs(calib_m) < 0.1:
-            logging.error("Step 3: pendenza troppo piccola, riprova")
-            return False
+            logging.error("Step 41: pendenza troppo piccola, riprova")
+            return
 
-        logging.info(f"Step 3: punto=({punto[0]:.1f}, {punto[1]:.1f}), "
-                    f"centro=({center_x:.1f}, {center_y:.1f}), "
-                    f"calib_m={calib_m:.3f} px/%")
-
-        # Salva in config
         self.cache['config']['y_calib_m'] = calib_m
+        logging.info(f"Step 41: y_calib_m={calib_m:.3f} px/%")
 
-        # Calibrazione luminosità: calcolo lux_m e lux_q
-        # px_lux_dark -> 0 lux, px_lux_bright -> luxnom lux
-        # lux = lux_m * px_lux + lux_q
         px_lux_dark = self.cache['config'].get('px_lux_dark', 0)
-        px_lux_bright = cache.get('calib_px_lux_bright', 0)
         luxnom = float(cache.get('stato_comunicazione', {}).get('luxnom', 0))
 
+        # --- lux_m, lux_q per anabbagliante ---
+        px_lux_bright = cache.get('calib_px_lux_bright', 0)
         self.cache['config']['px_lux_bright'] = px_lux_bright
-
         delta = px_lux_bright - px_lux_dark
         if abs(delta) > 0.01 and luxnom > 0:
             lux_m = luxnom / delta
             lux_q = -lux_m * px_lux_dark
             self.cache['config']['lux_m'] = lux_m
             self.cache['config']['lux_q'] = lux_q
-            logging.info(f"Step 3: lux_m={lux_m:.4f}, lux_q={lux_q:.4f} "
-                        f"(dark={px_lux_dark:.3f}, bright={px_lux_bright:.3f}, luxnom={luxnom:.1f})")
+            logging.info(f"lux anabb: lux_m={lux_m:.4f}, lux_q={lux_q:.4f} "
+                        f"(dark={px_lux_dark:.3f}, bright={px_lux_bright:.3f})")
         else:
-            logging.warning(f"Step 3: calibrazione lux non possibile "
-                          f"(delta={delta:.3f}, luxnom={luxnom:.1f})")
+            logging.warning(f"Calibrazione lux anabb non possibile (delta={delta:.3f}, luxnom={luxnom:.1f})")
 
-        # Salva config.json
+        # --- lux_m_abb, lux_q_abb per abbagliante ---
+        px_lux_bright_abb = self.cache['config'].get('px_lux_bright_abb', 0)
+        delta_abb = px_lux_bright_abb - px_lux_dark
+        if abs(delta_abb) > 0.01 and luxnom > 0:
+            lux_m_abb = luxnom / delta_abb
+            lux_q_abb = -lux_m_abb * px_lux_dark
+            self.cache['config']['lux_m_abb'] = lux_m_abb
+            self.cache['config']['lux_q_abb'] = lux_q_abb
+            logging.info(f"lux abb: lux_m_abb={lux_m_abb:.4f}, lux_q_abb={lux_q_abb:.4f} "
+                        f"(bright_abb={px_lux_bright_abb:.3f})")
+        else:
+            logging.warning(f"Calibrazione lux abb non possibile (delta={delta_abb:.3f}, luxnom={luxnom:.1f})")
+
         try:
             with open(self.config_file, 'w') as f:
                 json.dump(self.cache['config'], f, indent=4)
-            logging.info(f"Calibrazione salvata: m={calib_m:.3f} px/%")
+            logging.info("Calibrazione salvata in config.json")
         except Exception as e:
             logging.error(f"Errore nel salvare config.json: {e}")
 
-        # Ricarica config
         init_config = self.cache.get('init_config')
         if init_config:
             init_config("config.json")
 
         self._advance_to_next_step()
-        return not self.calibration_active
 
     # =========================================================================
     # GESTIONE CLICK
     # =========================================================================
 
     def handle_click(self, x, y, cache):
-        """
-        Gestisce il click del mouse durante la calibrazione.
-        Smista il click allo step corrente o al pulsante TERMINA.
-
-        Args:
-            x: Coordinata X del click
-            y: Coordinata Y del click
-            cache: Cache con configurazione
-
-        Returns:
-            True se la calibrazione e' terminata, False altrimenti
-        """
         if not self.calibration_active:
             return False
 
-        # Controlla click su pulsante TERMINA (priorita' massima)
         if self.exit_button_rect:
             btn_x, btn_y, btn_w, btn_h = self.exit_button_rect
             if btn_x <= x <= btn_x + btn_w and btn_y <= y <= btn_y + btn_h:
-                logging.info("Click sul pulsante TERMINA: esco dalla calibrazione")
+                logging.info("Click sul pulsante TERMINA")
                 self.stop_calibration()
                 return True
 
-        # Smista click allo step corrente
         if self.current_step == 1:
             return self._handle_click_step1(x, y, cache)
-        elif self.current_step == 2:
-            return self._handle_click_step2(x, y, cache)
-        elif self.current_step == 4:
-            return self._handle_click_step4(x, y, cache)
+        elif self.current_step == 20:
+            return self._handle_click_step20(x, y, cache)
+        elif self.current_step == 22:
+            return self._handle_click_step22(x, y, cache)
+        elif self.current_step == 30:
+            return self._handle_click_step30(x, y, cache)
+        elif self.current_step == 40:
+            return self._handle_click_step40(x, y, cache)
 
         return False
 
     def get_status(self):
-        """
-        Restituisce lo stato attuale della calibrazione.
-
-        Returns:
-            Dict con stato calibrazione
-        """
         return {
             'active': self.calibration_active,
             'step': self.current_step,

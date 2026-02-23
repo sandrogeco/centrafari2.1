@@ -197,23 +197,21 @@ def show_frame(cache, lmain):
     if tipo_faro == 'calibrazione' and cache.get('calibration_manager') and cache['calibration_manager'].calibration_active:
         calibration_manager = cache['calibration_manager']
 
-        # Step 1: salva media pixel intera immagine (riferimento buio)
+        # Step 1: forza px_lux_dark = 0
         if calibration_manager.current_step == 1:
-            import numpy as np
             cache['calib_px_lux_dark'] = 0.0
 
-        # Step 3-4: esegui detection per mostrare punto e linee
-        if calibration_manager.current_step in [3, 4]:
+        # Step con detection attiva (faro acceso)
+        if calibration_manager.current_step in [21, 22, 31, 40, 41]:
             results = fari_detection.detect_anabbagliante(
                 image_input, cache, 5, 40, 120, 1e-8, 1e-8, 1000
             )
             image_output = fari_detection.draw_results(image_view, results, cache)
             point = results['punto']
             angles = results['angoli']
-            # Salva punto per calibrazione (già su immagine preprocessata)
-            cache['calibration_point'] = point
+            if point:
+                cache['calibration_point'] = point
         else:
-            # Step 1-2: nessuna detection
             image_output = image_view.copy()
             point = None
             angles = (0, 0, 0)
@@ -276,17 +274,14 @@ def show_frame(cache, lmain):
 
     cache['px_lux'] = px_lux
 
-    # Salva px_lux per calibrazione step 3 (abbagliante a inclinazione 0)
-    if (cache.get('calibration_manager') and
-        cache['calibration_manager'].calibration_active and
-        cache['calibration_manager'].current_step == 3 and point):
-        cache['calib_px_lux_bright'] = px_lux
-
-    # Salva punto per calibrazione step 4 (inclinazione -4%)
-    if (cache.get('calibration_manager') and
-        cache['calibration_manager'].calibration_active and
-        cache['calibration_manager'].current_step == 4 and point):
-        cache['calibration_point'] = point
+    cm = cache.get('calibration_manager')
+    if cm and cm.calibration_active and point:
+        # Step 31: abbagliante incl 0 → px_lux_bright_abb
+        if cm.current_step == 31:
+            cache['calib_px_lux_bright_abb'] = px_lux
+        # Step 41: anabbagliante incl -4% → px_lux_bright
+        elif cm.current_step == 41:
+            cache['calib_px_lux_bright'] = px_lux
 
     # ====================
     # 6. POST-PROCESSING

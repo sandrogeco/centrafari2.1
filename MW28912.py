@@ -259,13 +259,13 @@ def show_frame(cache, lmain):
     if point:
         px_lux = calcola_px_lux(
             image_input, image_output, point,
-            (sft_x, sft_y), lux_size, cache
+            (sft_x, sft_y), lux_size, cache, tipo_faro
         )
     else:
         center_point = (config['width'] / 2, config['height'] / 2)
         px_lux = calcola_px_lux(
             image_input, image_output, center_point,
-            (sft_x, sft_y), lux_size, cache
+            (sft_x, sft_y), lux_size, cache, tipo_faro
         )
 
     cache['px_lux'] = px_lux

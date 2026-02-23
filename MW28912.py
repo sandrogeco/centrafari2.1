@@ -162,7 +162,7 @@ def show_frame(cache, lmain):
     if pattern in ['0', '1']:
         image_input = cv2.cvtColor(image_input, cv2.COLOR_BGR2GRAY)
     elif pattern == '2':
-        image_view = cv2.applyColorMap(255 - image_view.copy(), cv2.COLORMAP_JET)
+        image_view = cv2.applyColorMap(image_view.copy(), cv2.COLORMAP_JET)
         image_input = cv2.cvtColor(image_input, cv2.COLOR_BGR2GRAY)
 
     # ====================

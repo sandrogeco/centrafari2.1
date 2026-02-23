@@ -1,8 +1,8 @@
 {
-    "DEBUG": false,
+    "DEBUG": true,
     "CAMERA": false,
     "COMM":true,
-    "AUTOEXP": false,
+    "AUTOEXP": true,
     "width": 630,
     "height": 320,
     "window_shift_x": 278,
@@ -43,5 +43,13 @@
     "autoexp_max_corr": 0.2,
     "autoexp_deadband": 2,
     "autoexp_integral_max": 2.0,
-    "ip":"192.168.194.127"
+    "autoexp_stable_time": 1.0,
+    "px_lux_dark": 0,
+    "px_lux_bright": 0,
+    "px_lux_bright_abb": 0,
+    "y_calib_m": 1.0,
+    "lux_m": 1.0,
+    "lux_q": 0.0,
+    "lux_m_abb": 1.0,
+    "lux_q_abb": 0.0
 }

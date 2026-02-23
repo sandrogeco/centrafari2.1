@@ -71,7 +71,28 @@ def autoexp(image_input, image_view, cache):
     Controllo PID esposizione automatica (moltiplicativo).
     Lavora sull'errore normalizzato (error/setpoint) per stabilità.
     autoexp_ok = True quando errore entro tolleranza per N frame consecutivi.
+    Se CAMERA=False: non invia comandi, autoexp_ok=True dopo 5s.
     """
+    if not cache.get('CAMERA', True):
+        if cache.pop('reset_autoexp', False):
+            cache['autoexp_pid'] = None
+            cache['autoexp_ok'] = False
+            cache['autoexp_fake_t0'] = None
+        if cache.get('autoexp_fake_t0') is None:
+            cache['autoexp_fake_t0'] = time.monotonic()
+        cache['autoexp_ok'] = (time.monotonic() - cache['autoexp_fake_t0']) >= 5.0
+        return image_view
+
+    # Reset PID se richiesto
+    if cache.pop('reset_autoexp', False):
+        cache['autoexp_pid'] = None
+        cache['autoexp_ok'] = False
+        cache['autoexp_fake_t0'] = None
+        exp_start = cache['config'].get('autoexp_exp_start', 200)
+        cache['config']['exposure_absolute'] = exp_start
+        os.system(f"v4l2-ctl --device /dev/video0 "
+                  f"--set-ctrl=exposure_absolute={int(exp_start)}")
+
     config = cache['config']
     pid = cache.get('autoexp_pid')
 

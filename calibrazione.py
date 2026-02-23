@@ -33,13 +33,13 @@ STRINGS_IT = {
     'step100_name': 'Calibrazione terminata',
 
     # Istruzioni per substep
-    'step1_instruction':   'Spegnere faro e premere un punto qualsiasi',
-    'step20_instruction':  'Accendere anabbagliante a inclinazione 0 e premere un punto qualsiasi',
+    'step1_instruction':   'Spegnere faro e premere',
+    'step20_instruction':  'Accendere ANABBAGLIANTE a inclinazione 0 e premere',
     'step21_instruction':  'Attendere autoexp OK...',
     'step22_instruction':  'Cliccare sul punto centrale',
-    'step30_instruction':  'Accendere abbagliante a inclinazione 0 e premere un punto qualsiasi',
+    'step30_instruction':  'Accendere ABBAGLIANTE a inclinazione 0 e premere',
     'step31_instruction':  'Attendere autoexp OK...',
-    'step40_instruction':  'Portare anabbagliante a inclinazione -4% e premere un punto qualsiasi',
+    'step40_instruction':  'Portare ANABBAGLIANTE a inclinazione -4% e premere',
     'step41_instruction':  'Attendere autoexp OK...',
     'step100_instruction': 'Calibrazione terminata',
 
@@ -144,7 +144,6 @@ class CalibrationManager:
         elif self.current_step == 41:
             self._process_step41(image_output, cache)
 
-        self._draw_terminate_button(image_output, cache)
         return image_output
 
     def _draw_calibration_ui(self, image_output, cache):
@@ -251,6 +250,10 @@ class CalibrationManager:
     # =========================================================================
 
     def _process_step21(self, image_output, cache):
+        if not self.step_data.get('autoexp_reset_done'):
+            cache['reset_autoexp'] = True
+            cache['autoexp_ok'] = False
+            self.step_data['autoexp_reset_done'] = True
         if cache.get('autoexp_ok', False):
             self._advance_to_next_step()
 
@@ -290,6 +293,10 @@ class CalibrationManager:
     # =========================================================================
 
     def _process_step31(self, image_output, cache):
+        if not self.step_data.get('autoexp_reset_done'):
+            cache['reset_autoexp'] = True
+            cache['autoexp_ok'] = False
+            self.step_data['autoexp_reset_done'] = True
         if cache.get('autoexp_ok', False):
             px_lux_bright_abb = cache.get('calib_px_lux_bright_abb', 0)
             self.cache['config']['px_lux_bright_abb'] = px_lux_bright_abb
@@ -310,6 +317,10 @@ class CalibrationManager:
     # =========================================================================
 
     def _process_step41(self, image_output, cache):
+        if not self.step_data.get('autoexp_reset_done'):
+            cache['reset_autoexp'] = True
+            cache['autoexp_ok'] = False
+            self.step_data['autoexp_reset_done'] = True
         if cache.get('autoexp_ok', False):
             self._complete_calibration(cache)
 
@@ -381,13 +392,6 @@ class CalibrationManager:
     def handle_click(self, x, y, cache):
         if not self.calibration_active:
             return False
-
-        if self.exit_button_rect:
-            btn_x, btn_y, btn_w, btn_h = self.exit_button_rect
-            if btn_x <= x <= btn_x + btn_w and btn_y <= y <= btn_y + btn_h:
-                logging.info("Click sul pulsante TERMINA")
-                self.stop_calibration()
-                return True
 
         if self.current_step == 1:
             return self._handle_click_step1(x, y, cache)

@@ -111,11 +111,7 @@ def show_frame(cache, lmain):
 
     # Transizione run 0→1: reset PID autoexp e riparti da esposizione iniziale
     if should_show and not prev_run:
-        cache['autoexp_pid'] = None
-        exp_start = cache['config'].get('autoexp_exp_start', 200)
-        cache['config']['exposure_absolute'] = exp_start
-        os.system(f"v4l2-ctl --device /dev/video0 "
-                  f"--set-ctrl=exposure_absolute={int(exp_start)}")
+        cache['reset_autoexp'] = True
         logging.info("Run 0→1: reset autoexp PID")
 
     current_state = root.state()

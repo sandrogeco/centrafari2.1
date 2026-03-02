@@ -222,12 +222,13 @@ def thread_comunicazione(port, cache):
                         incl_percent = float(cache['stato_comunicazione']['incl'])
                         calib_m = cache['config'].get('y_calib_m', 1.0)
                         cache['stato_comunicazione']['incl'] = int(incl_percent * calib_m)
-                    # Converti luxnom in float
-                    if 'luxnom' in cache['stato_comunicazione']:
-                        try:
-                            cache['stato_comunicazione']['luxnom'] = float(cache['stato_comunicazione']['luxnom'])
-                        except ValueError:
-                            pass
+                    # Converti luxnom e luxnom_abb in float
+                    for key in ('luxnom', 'luxnom_abb'):
+                        if key in cache['stato_comunicazione']:
+                            try:
+                                cache['stato_comunicazione'][key] = float(cache['stato_comunicazione'][key])
+                            except ValueError:
+                                pass
                 else:
                     logging.warning("Connessione chiusa dal server")
                     conn.close()

@@ -344,6 +344,7 @@ class CalibrationManager:
 
         px_lux_dark = self.cache['config'].get('px_lux_dark', 0)
         luxnom = float(cache.get('stato_comunicazione', {}).get('luxnom', 0))
+        luxnom_abb = float(cache.get('stato_comunicazione', {}).get('luxnom_abb', 0))
 
         # --- lux_m, lux_q per anabbagliante ---
         px_lux_bright = cache.get('calib_px_lux_bright', 0)
@@ -363,7 +364,7 @@ class CalibrationManager:
         px_lux_bright_abb = self.cache['config'].get('px_lux_bright_abb', 0)
         delta_abb = px_lux_bright_abb - px_lux_dark
         if abs(delta_abb) > 0.01 and luxnom > 0:
-            lux_m_abb = luxnom / delta_abb
+            lux_m_abb = luxnom_abb / delta_abb
             lux_q_abb = -lux_m_abb * px_lux_dark
             self.cache['config']['lux_m_abb'] = lux_m_abb
             self.cache['config']['lux_q_abb'] = lux_q_abb

@@ -79,11 +79,7 @@ def encode_response(p, cache=None):
         umh = int(stato.get('UMH', 0))
         # TODO: applicare se necessario
 
-        # Calibrazione luminosità: px_lux -> lux reali
-        # lux = lux_m * px_lux + lux_q
-        lux_m = config.get('lux_m', 1.0)
-        lux_q = config.get('lux_q', 0.0)
-        lux_cal = lux_m * px_lux + lux_q
+        lux_cal =  px_lux 
 
         # UMB: unità misura luminosità (0=lux/25m, 1=Kcandles/1m, 2=KLux/1m)
         # Conversione: candela = lux × d² = lux × 625 (a 25m)

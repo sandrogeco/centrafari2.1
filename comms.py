@@ -229,6 +229,12 @@ def thread_comunicazione(port, cache):
                                 cache['stato_comunicazione'][key] = float(cache['stato_comunicazione'][key])
                             except ValueError:
                                 pass
+                    # Converti index in int
+                    if 'index' in cache['stato_comunicazione']:
+                        try:
+                            cache['stato_comunicazione']['index'] = int(cache['stato_comunicazione']['index'])
+                        except ValueError:
+                            pass
                 else:
                     logging.warning("Connessione chiusa dal server")
                     conn.close()

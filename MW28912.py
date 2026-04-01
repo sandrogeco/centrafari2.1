@@ -155,6 +155,9 @@ def show_frame(cache, lmain):
         image_input = cv2.flip(image_input, 1)
         image_view = cv2.flip(image_view, 1)
 
+    # Salva copia image_view prima di qualsiasi conversione pattern (per save)
+    image_view_orig = image_view.copy()
+
     # Conversione pattern (0,1 = grayscale, 2 = colormap JET)
     pattern = stato_comunicazione.get('pattern', '0')
     logging.debug(f"[PT] {pattern}")
@@ -413,6 +416,30 @@ def show_frame(cache, lmain):
         root.geometry(f"{width}x{height}+{new_x}+{new_y}")
         cache['last_rot'] = rot
         logging.info(f"Finestra spostata per rot={rot}: ({new_x}, {new_y})")
+
+    # ====================
+    # SALVATAGGIO IMMAGINI (save=1 da comm)
+    # ====================
+    if stato_comunicazione.get('save') == '1':
+        stato_comunicazione['save'] = '0'
+        idx = stato_comunicazione.get('index', '0')
+        lato = stato_comunicazione.get('lato', 'dx')
+        prefix = f"{idx}_{tipo_faro}_{lato}"
+        gray_base = cv2.cvtColor(image_view_orig, cv2.COLOR_BGR2GRAY)
+
+        base0 = cv2.cvtColor(gray_base, cv2.COLOR_GRAY2BGR)
+        img0 = fari_detection.draw_results(base0.copy(), results, cache)
+        cv2.imwrite(f'/tmp/{prefix}_gray.jpg', img0)
+
+        base1 = base0 * 0
+        img1 = fari_detection.draw_results(base1.copy(), results, cache)
+        cv2.imwrite(f'/tmp/{prefix}_graph.jpg', img1)
+
+        base2 = cv2.applyColorMap(gray_base, cv2.COLORMAP_JET)
+        img2 = fari_detection.draw_results(base2.copy(), results, cache)
+        cv2.imwrite(f'/tmp/{prefix}_heat.jpg', img2)
+
+        logging.info(f"Salvate immagini: /tmp/{prefix}_gray/graph/heat.jpg")
 
     # Converti BGR (OpenCV) → RGB (PIL/tkinter) e visualizza immagine finale
     image_rgb = cv2.cvtColor(image_output, cv2.COLOR_BGR2RGB)

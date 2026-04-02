@@ -420,8 +420,10 @@ def show_frame(cache, lmain):
     # ====================
     # SALVATAGGIO IMMAGINI (save=1 da comm)
     # ====================
-    if stato_comunicazione.get('save') == '1':
-        stato_comunicazione['save'] = '0'
+    save_val = stato_comunicazione.get('save', '0')
+    save_transizione = (save_val == '1') and (cache.get('prev_save') != '1')
+    cache['prev_save'] = save_val
+    if save_transizione:
         idx = stato_comunicazione.get('index', '0')
         lato = stato_comunicazione.get('lato', 'dx')
         prefix = f"{idx}_{tipo_faro}_{lato}"

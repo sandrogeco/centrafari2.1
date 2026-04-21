@@ -427,21 +427,23 @@ def show_frame(cache, lmain):
         idx = stato_comunicazione.get('index', '0')
         lato = stato_comunicazione.get('lato', 'dx')
         prefix = f"{idx}_{tipo_faro}_{lato}"
+        save_dir = '/home/pi/img_report'
+        os.makedirs(save_dir, exist_ok=True)
         gray_base = cv2.cvtColor(image_view_orig, cv2.COLOR_BGR2GRAY)
 
         base0 = cv2.cvtColor(gray_base, cv2.COLOR_GRAY2BGR)
         img0 = fari_detection.draw_results(base0.copy(), results, cache)
-        cv2.imwrite(f'/tmp/{prefix}_gray.jpg', img0)
+        cv2.imwrite(f'{save_dir}/{prefix}_gray.jpg', img0)
 
         base1 = base0 * 0
         img1 = fari_detection.draw_results(base1.copy(), results, cache)
-        cv2.imwrite(f'/tmp/{prefix}_graph.jpg', img1)
+        cv2.imwrite(f'{save_dir}/{prefix}_graph.jpg', img1)
 
         base2 = cv2.applyColorMap(gray_base, cv2.COLORMAP_JET)
         img2 = fari_detection.draw_results(base2.copy(), results, cache)
-        cv2.imwrite(f'/tmp/{prefix}_heat.jpg', img2)
+        cv2.imwrite(f'{save_dir}/{prefix}_heat.jpg', img2)
 
-        logging.info(f"Salvate immagini: /tmp/{prefix}_gray/graph/heat.jpg")
+        logging.info(f"Salvate immagini: {save_dir}/{prefix}_gray/graph/heat.jpg")
 
     # Converti BGR (OpenCV) → RGB (PIL/tkinter) e visualizza immagine finale
     image_rgb = cv2.cvtColor(image_output, cv2.COLOR_BGR2RGB)

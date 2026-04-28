@@ -423,25 +423,46 @@ def show_frame(cache, lmain):
     save_val = stato_comunicazione.get('save', '0')
     save_transizione = (save_val == '1') and (cache.get('prev_save') != '1')
     cache['prev_save'] = save_val
+    idx = stato_comunicazione.get('index', '0')
+    save_dir = '/home/pi/img_report'
+    # Cancella file del nuovo indice quando l'indice cambia
+    if idx != cache.get('prev_index'):
+        if os.path.isdir(save_dir):
+            for f in os.listdir(save_dir):
+                if f.startswith(f"{idx}_") and f.endswith('.jpg'):
+                    os.remove(os.path.join(save_dir, f))
+        cache['prev_index'] = idx
     if save_transizione:
-        idx = stato_comunicazione.get('index', '0')
         lato = stato_comunicazione.get('lato', 'dx')
         prefix = f"{idx}_{tipo_faro}_{lato}"
-        save_dir = '/home/pi/img_report'
         os.makedirs(save_dir, exist_ok=True)
         gray_base = cv2.cvtColor(image_view_orig, cv2.COLOR_BGR2GRAY)
 
+        def _applica_croce_save(img):
+            cx = int(config['width'] / 2)
+            cy = int(config['height'] / 2)
+            incl = int(stato_comunicazione.get('incl', 0))
+            if tipo_faro == 'fendinebbia':
+                tov = config.get('TOV', 50)
+                disegna_segmento(img, (0, cy + incl - tov), (config['width'], cy + incl - tov), 1, 'green')
+                disegna_segmento(img, (0, cy + incl + tov), (config['width'], cy + incl + tov), 1, 'green')
+            else:
+                toh = int(stato_comunicazione.get('TOH', config.get('TOH', 50)))
+                tov = int(stato_comunicazione.get('TOV', config.get('TOV', 50)))
+                visualizza_croce_riferimento(img, cx, cy + incl, 2 * tov, 2 * toh)
+            return img
+
         base0 = cv2.cvtColor(gray_base, cv2.COLOR_GRAY2BGR)
         img0 = fari_detection.draw_results(base0.copy(), results, cache)
-        cv2.imwrite(f'{save_dir}/{prefix}_gray.jpg', img0)
+        cv2.imwrite(f'{save_dir}/{prefix}_gray.jpg', _applica_croce_save(img0))
 
         base1 = base0 * 0
         img1 = fari_detection.draw_results(base1.copy(), results, cache)
-        cv2.imwrite(f'{save_dir}/{prefix}_graph.jpg', img1)
+        cv2.imwrite(f'{save_dir}/{prefix}_graph.jpg', _applica_croce_save(img1))
 
         base2 = cv2.applyColorMap(gray_base, cv2.COLORMAP_JET)
         img2 = fari_detection.draw_results(base2.copy(), results, cache)
-        cv2.imwrite(f'{save_dir}/{prefix}_heat.jpg', img2)
+        cv2.imwrite(f'{save_dir}/{prefix}_heat.jpg', _applica_croce_save(img2))
 
         logging.info(f"Salvate immagini: {save_dir}/{prefix}_gray/graph/heat.jpg")
 

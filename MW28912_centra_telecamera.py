@@ -21,7 +21,7 @@ from camera import set_camera, apri_camera,autoexp,fixexp
 
 
 def show_frame( cache, lmain):
-    image_input = cv2.imread("/mnt/temp/frame.jpg")
+    image_input = cv2.imread("/tmp/frame.jpg")
     if image_input is None:
         lmain.after(10, lambda: show_frame(cache, lmain))
         return

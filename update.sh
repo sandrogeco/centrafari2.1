@@ -18,8 +18,8 @@ fi
 # Termina processi MW
 
 echo "Terminazione processi MW..."
-sudo pkill -9 -if "MW28912" 2>/dev/null || true
-sudo pkill -9 -if "^mw" 2>/dev/null || true
+sudo pkill -9 -x "MW28912" 2>/dev/null || true
+sudo pkill -9 -f "MW28912\.py" 2>/dev/null || true
 sleep 2
 
 # ------------------------------------------------------------------------

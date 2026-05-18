@@ -1,12 +1,40 @@
 #!/bin/bash
 set -euo pipefail
 
+# Se non siamo dentro xterm, rilancia in una finestra xterm
+LOG="/tmp/checkupd.log"
+echo "=== $(date) ===" >> "$LOG"
+echo "IN_XTERM=${IN_XTERM:-}" >> "$LOG"
+echo "DISPLAY=${DISPLAY:-}" >> "$LOG"
+echo "USER=$(whoami)" >> "$LOG"
+
+if [ -z "${IN_XTERM:-}" ]; then
+  export DISPLAY=:0
+  export XAUTHORITY=/home/pi/.Xauthority
+  echo "Apro lxterminal..." >> "$LOG"
+  xhost +local: >> "$LOG" 2>&1 || true
+  lxterminal --title="Aggiornamento" \
+    -e bash -c "IN_XTERM=1 $0 2>&1 | tee -a $LOG; echo; echo 'Premi INVIO per chiudere'; read"
+  echo "lxterminal terminato" >> "$LOG"
+  exit 0
+fi
+
+echo "Dentro xterm, procedo..." >> "$LOG"
+
 SERVER="https://topauto.syel-service.it/aggiornamenti"
 USERNAME_MACCHINA="1000abcd"
 PASSWORD_MACCHINA="123456"
 INSTALL_DIR="/home/pi/Applications/MW28912"
 REFRESH_TOKEN_FILE="$INSTALL_DIR/.refresh_token"
 TMP_DIR="/tmp/mw_update"
+
+# ------------------------------------------------------------------------
+# Termina processi MW
+
+echo "Terminazione processi MW..."
+sudo pkill -9 -x "MW28912" 2>/dev/null || true
+sudo pkill -9 -f "MW28912\.py" 2>/dev/null || true
+sleep 2
 
 # ------------------------------------------------------------------------
 # Auth

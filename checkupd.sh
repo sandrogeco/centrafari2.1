@@ -22,8 +22,8 @@ fi
 echo "Dentro xterm, procedo..." >> "$LOG"
 
 SERVER="https://topauto.syel-service.it/aggiornamenti"
-USERNAME_MACCHINA="1000abcd"
-PASSWORD_MACCHINA="123456"
+USERNAME_MACCHINA="TopAuto"
+PASSWORD_MACCHINA="12345678"
 INSTALL_DIR="/home/pi/Applications/MW28912"
 REFRESH_TOKEN_FILE="$INSTALL_DIR/.refresh_token"
 TMP_DIR="/tmp/mw_update"
@@ -131,5 +131,5 @@ fi
 # Avvia installazione
 
 echo "Avvio installazione..."
-chmod +x "$INSTALL_DIR/update.sh"
-exec "$INSTALL_DIR/update.sh" "$ARCHIVE_PATH"
+chmod +x "$TMP_DIR/$script"
+exec "$TMP_DIR/$script" "$ARCHIVE_PATH"

@@ -27,6 +27,7 @@
     ],
     "margin_r": 0.1,
     "margin_l": 0.1,
+    "fit_min_left_frac": 0.25,
     "x_coeff_pixel_m": 1.375,
     "y_coeff_pixel_m": 1.375,
     "TOH":10,

@@ -211,11 +211,21 @@ def detect_anabbagliante(image_input: np.ndarray,
         left_bound = x_min + marginl
         right_bound = np.minimum(x_max, cache['r_bound']) - marginl
 
-        logging.debug(f"anabbagliante - X0:{cache['X0']}, bounds:[{left_bound}, {right_bound}]")
-
         # Filtra punti nella ROI
         mask = (pts[:, 0] >= left_bound) & (pts[:, 0] <= right_bound)
         top_pts = pts[mask][pts[mask][:, 1] <= y_h]
+
+        # Simmetrizza i punti attorno a X0 del frame precedente (minimo fit_min_left_frac * larghezza a sx)
+        h, w = image_input.shape
+        X0_prev = cache['X0']
+        extent_r = right_bound - X0_prev
+        fit_min_left = w * cache.get('config', {}).get('fit_min_left_frac', 0.25)
+        x_left_sym = X0_prev - max(extent_r, fit_min_left)
+        sym_mask = top_pts[:, 0] >= x_left_sym
+        top_pts = top_pts[sym_mask]
+
+        logging.debug(f"anabbagliante - X0_prev:{X0_prev:.1f} bounds:[{left_bound}, {right_bound}] sym_left:{x_left_sym:.1f}")
+
         x_data = top_pts[:, 0]
         y_data = top_pts[:, 1]
 
@@ -236,7 +246,6 @@ def detect_anabbagliante(image_input: np.ndarray,
         angles = calculate_angles(X0, Y0, mo, cache)
 
         # Calcola punti linee per rendering
-        h, w = image_input.shape
         xs = np.array([0, X0, w])
         ys = two_lines_model(xs, X0, Y0, mo, mi)
 
@@ -312,19 +321,21 @@ def detect_fendinebbia(image_input: np.ndarray,
             cache['X0'] = 300
             cache['Y0'] = 0
             cache['r_bound'] = x_max
+            cache['l_bound'] = x_min
 
         # Reset cache se autoesposizione convergente
         if cache.get('autoexp_ok', False):
             cache['margin_auto'] = 0
             cache['s_err'] = np.inf
             cache['r_bound'] = x_max
+            cache['l_bound'] = x_min
 
         # Calcola bounds per fitting
         marginl = 10
-        left_bound = x_min + marginl
+        left_bound = np.maximum(x_min, cache['l_bound']) + marginl
         right_bound = np.minimum(x_max, cache['r_bound']) - marginl
 
-        logging.debug(f"fendinebbia - X0:{cache['X0']}, bounds:[{left_bound}, {right_bound}]")
+        logging.debug(f"fendinebbia - X0:{cache['X0']}, bounds:[{left_bound}, {right_bound}] l_bound:{cache['l_bound']} r_bound:{cache['r_bound']}")
 
         # Filtra punti nella ROI
         mask = (pts[:, 0] >= left_bound) & (pts[:, 0] <= right_bound)

@@ -217,7 +217,7 @@ def _show_frame_impl(cache, lmain):
             results = fari_detection.detect_anabbagliante(
                 image_input, cache, 5, 40, 120, 1e-8, 1e-8, 1000
             )
-            image_output = fari_detection.draw_results(image_view, results, cache)
+            image_output = image_view.copy()
             point = results['punto']
             angles = results['angoli']
             if point:

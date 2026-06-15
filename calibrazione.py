@@ -79,6 +79,10 @@ class CalibrationManager:
         self.calibration_active = False
         self.steps_completed = set()
         self.exit_button_rect = None
+        self._calib_log = logging.getLogger('calibrazione')
+
+    def _log(self, msg):
+        self._calib_log.info(f"[CALIB_LOG] {msg}")
 
     def start_calibration(self):
         logging.info("Avvio calibrazione: caricamento default.json in cache")
@@ -95,9 +99,11 @@ class CalibrationManager:
         self.step_data = {'state': 0}
 
         logging.info(f"Calibrazione avviata: step {self.current_step}")
+        self._log("=== INIZIO CALIBRAZIONE ===")
 
     def stop_calibration(self):
         logging.info("Calibrazione terminata")
+        self._log("=== FINE CALIBRAZIONE ===")
 
         try:
             with open(self.config_file, 'w') as f:
@@ -233,6 +239,7 @@ class CalibrationManager:
         px_lux_dark = cache.get('calib_px_lux_dark', 0)
         self.cache['config']['px_lux_dark'] = px_lux_dark
         logging.info(f"Step 1: px_lux_dark = {px_lux_dark:.3f}")
+        self._log(f"Step 1 - BUIO: px_lux_dark={px_lux_dark:.3f}")
         self._advance_to_next_step()
         return False
 
@@ -255,6 +262,8 @@ class CalibrationManager:
             cache['autoexp_ok'] = False
             self.step_data['autoexp_reset_done'] = True
         if cache.get('autoexp_ok', False):
+            exp = cache['config'].get('exposure_absolute', 0)
+            self._log(f"Step 21 - AUTOEXP OK: exp={int(exp)} msg={cache.get('autoexp_debug_msg','')}")
             self._advance_to_next_step()
 
     # =========================================================================
@@ -263,6 +272,7 @@ class CalibrationManager:
 
     def _handle_click_step22(self, x, y, cache):
         logging.info(f"Step 22 (centraggio) - Click: ({x}, {y})")
+        self._log(f"Step 22 - CENTRO: crop_center=({x}, {y})")
         self.cache['config']['crop_center'] = [x, y]
 
         try:
@@ -301,6 +311,8 @@ class CalibrationManager:
             px_lux_bright_abb = cache.get('calib_px_lux_bright_abb', 0)
             self.cache['config']['px_lux_bright_abb'] = px_lux_bright_abb
             logging.info(f"Step 31: px_lux_bright_abb = {px_lux_bright_abb:.3f}")
+            exp = cache['config'].get('exposure_absolute', 0)
+            self._log(f"Step 31 - AUTOEXP OK (abbagliante): exp={int(exp)} px_lux_bright_abb={px_lux_bright_abb:.3f} msg={cache.get('autoexp_debug_msg','')}")
             self._advance_to_next_step()
 
     # =========================================================================
@@ -322,6 +334,8 @@ class CalibrationManager:
             cache['autoexp_ok'] = False
             self.step_data['autoexp_reset_done'] = True
         if cache.get('autoexp_ok', False):
+            exp = cache['config'].get('exposure_absolute', 0)
+            self._log(f"Step 41 - AUTOEXP OK (anabb incl -4%): exp={int(exp)} msg={cache.get('autoexp_debug_msg','')}")
             self._complete_calibration(cache)
 
     def _complete_calibration(self, cache):
@@ -372,6 +386,16 @@ class CalibrationManager:
                         f"(bright_abb={px_lux_bright_abb:.3f})")
         else:
             logging.warning(f"Calibrazione lux abb non possibile (delta={delta_abb:.3f}, luxnom={luxnom:.1f})")
+
+        cfg = self.cache['config']
+        self._log(f"Step 41 - RISULTATI CALIBRAZIONE:")
+        self._log(f"  px_lux_dark={cfg.get('px_lux_dark', 0):.3f}")
+        self._log(f"  px_lux_bright={cfg.get('px_lux_bright', 0):.3f}")
+        self._log(f"  px_lux_bright_abb={cfg.get('px_lux_bright_abb', 0):.3f}")
+        self._log(f"  y_calib_m={cfg.get('y_calib_m', 0):.4f}")
+        self._log(f"  lux_m={cfg.get('lux_m', 0):.4f}  lux_q={cfg.get('lux_q', 0):.4f}")
+        self._log(f"  lux_m_abb={cfg.get('lux_m_abb', 0):.4f}  lux_q_abb={cfg.get('lux_q_abb', 0):.4f}")
+        self._log(f"  crop_center={cfg.get('crop_center')}")
 
         try:
             with open(self.config_file, 'w') as f:

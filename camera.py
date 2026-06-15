@@ -121,52 +121,61 @@ def autoexp(image_input, image_view, cache):
         valid = image_input[image_input < 255]
         r = np.max(valid) if len(valid) > 0 else 255
         exp_old = config['exposure_absolute']
-        deadband = config.get('autoexp_deadband', 2)
+        max_corr = config.get('autoexp_max_corr', 0.2)
+        perc_target = config.get('autoexp_perc_target', 0.5)
+        perc_tol = config.get('autoexp_perc_tol', 1.0)
+        in_range = np.sum((image_input >= setpoint - stable_tol) & (image_input <= setpoint + stable_tol))
+        perc = in_range / image_input.size * 100
+        perc_ok = abs(perc - perc_target) <= perc_tol
 
-        if abs(setpoint - r) <= deadband:
-            # Banda morta: freeze esposizione e PID
-            exp_new = exp_old
-        else:
-            # Errore normalizzato
-            error = (setpoint - r) / setpoint
+        use_perc_pid = config.get('autoexp_use_perc_pid', True)
 
-            # PID su errore normalizzato
+        if use_perc_pid:
+            # --- Metodo PERC: PID su percentuale pixel nel range ---
+            kp_eff = config.get('autoexp_Kp_fine', Kp / 2) if perc_ok else Kp
+            error = (perc_target - perc) / perc_target
             pid['integral'] += error
             pid['integral'] = np.clip(pid['integral'], -integral_max, integral_max)
             derivative = error - pid['prev_error']
             pid['prev_error'] = error
+            correction = np.clip(kp_eff * error + Ki * pid['integral'] + Kd * derivative, -max_corr, max_corr)
+            exp_new = np.clip(exp_old * (1.0 + correction), exp_min, exp_max)
+            if exp_new != exp_old:
+                config['exposure_absolute'] = float(exp_new)
+                os.system(f"v4l2-ctl --device /dev/video0 --set-ctrl=exposure_absolute={int(exp_new)}")
+                time.sleep(0.1)
+            if perc_ok:
+                if pid['stable_since'] is None:
+                    pid['stable_since'] = time.monotonic()
+            else:
+                pid['stable_since'] = None
+            stable_elapsed = time.monotonic() - pid['stable_since'] if pid['stable_since'] else 0
+            cache['autoexp_ok'] = stable_elapsed >= stable_time
 
-            correction = Kp * error + Ki * pid['integral'] + Kd * derivative
-
-            # Limita correzione massima per frame (es. ±20%)
-            max_corr = config.get('autoexp_max_corr', 0.2)
-            correction = np.clip(correction, -max_corr, max_corr)
-
-            # Applica correzione moltiplicativa
-            exp_new = exp_old * (1.0 + correction)
-            exp_new = np.clip(exp_new, exp_min, exp_max)
-            config['exposure_absolute'] = float(exp_new)
-
-            os.system(f"v4l2-ctl --device /dev/video0 "
-                      f"--set-ctrl=exposure_absolute={int(exp_new)}")
-            time.sleep(0.1)
-
-        # Stabilità: max pixel entro tolleranza per stable_time secondi
-        if abs(r - setpoint) <= stable_tol:
-            if pid['stable_since'] is None:
-                pid['stable_since'] = time.monotonic()
         else:
-            pid['stable_since'] = None
+            # --- Metodo ASSOLUTO: PID su max pixel vs setpoint ---
+            deadband = config.get('autoexp_deadband', 2)
+            if abs(setpoint - r) <= deadband:
+                exp_new = exp_old
+            else:
+                error = (setpoint - r) / setpoint
+                pid['integral'] += error
+                pid['integral'] = np.clip(pid['integral'], -integral_max, integral_max)
+                derivative = error - pid['prev_error']
+                pid['prev_error'] = error
+                correction = np.clip(Kp * error + Ki * pid['integral'] + Kd * derivative, -max_corr, max_corr)
+                exp_new = np.clip(exp_old * (1.0 + correction), exp_min, exp_max)
+                config['exposure_absolute'] = float(exp_new)
+                os.system(f"v4l2-ctl --device /dev/video0 --set-ctrl=exposure_absolute={int(exp_new)}")
+                time.sleep(0.1)
+            if abs(r - setpoint) <= stable_tol:
+                if pid['stable_since'] is None:
+                    pid['stable_since'] = time.monotonic()
+            else:
+                pid['stable_since'] = None
+            stable_elapsed = time.monotonic() - pid['stable_since'] if pid['stable_since'] else 0
+            cache['autoexp_ok'] = (stable_elapsed >= stable_time) and perc_ok
 
-        stable_elapsed = time.monotonic() - pid['stable_since'] if pid['stable_since'] else 0
-        perc_target = config.get('autoexp_perc_target', 0.5)
-        perc_tol = config.get('autoexp_perc_tol', 0.3)
-        in_range = np.sum((image_input >= setpoint - stable_tol) & (image_input <= setpoint + stable_tol))
-        perc = in_range / image_input.size * 100
-        perc_ok = abs(perc - perc_target) <= perc_tol
-        cache['autoexp_ok'] = (stable_elapsed >= stable_time) and perc_ok
-
-        # Salva info debug per disegno su image_output
         ok_str = "OK" if cache['autoexp_ok'] else "..."
         px_lux = cache.get('px_lux', 0)
         cache['autoexp_debug_msg'] = f"max:{r} perc:{perc:.2f}% exp:{int(exp_new)} px_lux:{px_lux:.1f} [{ok_str}]"

@@ -31,7 +31,8 @@ def autoexp_legacy(image_input,image_view,cache):
     cache['autoexp_ok'] = True
 
     try:
-        r=np.max(image_input)
+        valid = image_input[image_input < 255]
+        r = np.max(valid) if len(valid) > 0 else 255
       #  logging.debug(f"cache-config: {cache['config']}")
         s235=np.sum(image_input>230)
 
@@ -117,7 +118,8 @@ def autoexp(image_input, image_view, cache):
     integral_max = config.get('autoexp_integral_max', 2.0)
 
     try:
-        r = np.max(image_input)
+        valid = image_input[image_input < 255]
+        r = np.max(valid) if len(valid) > 0 else 255
         exp_old = config['exposure_absolute']
         deadband = config.get('autoexp_deadband', 2)
 
@@ -157,12 +159,17 @@ def autoexp(image_input, image_view, cache):
             pid['stable_since'] = None
 
         stable_elapsed = time.monotonic() - pid['stable_since'] if pid['stable_since'] else 0
-        cache['autoexp_ok'] = stable_elapsed >= stable_time
+        perc_target = config.get('autoexp_perc_target', 0.5)
+        perc_tol = config.get('autoexp_perc_tol', 0.3)
+        in_range = np.sum((image_input >= setpoint - stable_tol) & (image_input <= setpoint + stable_tol))
+        perc = in_range / image_input.size * 100
+        perc_ok = abs(perc - perc_target) <= perc_tol
+        cache['autoexp_ok'] = (stable_elapsed >= stable_time) and perc_ok
 
         # Salva info debug per disegno su image_output
         ok_str = "OK" if cache['autoexp_ok'] else "..."
         px_lux = cache.get('px_lux', 0)
-        cache['autoexp_debug_msg'] = f"max:{r} mean:{int(np.mean(image_input))} exp:{int(exp_new)} px_lux:{px_lux:.1f} [{ok_str}]"
+        cache['autoexp_debug_msg'] = f"max:{r} perc:{perc:.2f}% exp:{int(exp_new)} px_lux:{px_lux:.1f} [{ok_str}]"
 
     except Exception as e:
         logging.error(f"autoexp PID error: {e}")

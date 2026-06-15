@@ -198,6 +198,7 @@ def show_frame(cache, lmain):
 
     if tipo_faro == 'calibrazione' and cache.get('calibration_manager') and cache['calibration_manager'].calibration_active:
         calibration_manager = cache['calibration_manager']
+        logging.debug(f"[CALIB] step={calibration_manager.current_step} active={calibration_manager.calibration_active}")
 
         # Step 1: forza px_lux_dark = 0
         if calibration_manager.current_step == 1:

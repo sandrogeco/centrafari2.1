@@ -44,6 +44,8 @@
     "autoexp_deadband": 2,
     "autoexp_integral_max": 2.0,
     "autoexp_stable_time": 1.0,
+    "autoexp_perc_target": 0.5,
+    "autoexp_perc_tol": 0.3,
     "px_lux_dark": 0,
     "px_lux_bright": 0,
     "px_lux_bright_abb": 0,

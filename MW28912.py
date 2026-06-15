@@ -72,6 +72,15 @@ def init_config(config_path, cache, percorso_script):
 
 
 def show_frame(cache, lmain):
+    try:
+        _show_frame_impl(cache, lmain)
+    except Exception:
+        logging.error("Errore show_frame", exc_info=True)
+    finally:
+        lmain.after(5, lambda: show_frame(cache, lmain))
+
+
+def _show_frame_impl(cache, lmain):
     """
     Elabora e visualizza un frame dell'immagine del faro.
 
@@ -104,7 +113,7 @@ def show_frame(cache, lmain):
     # 1. GESTIONE VISIBILITÀ FINESTRA
     # ====================
     root = lmain.master
-    stato_comunicazione = cache.get('stato_comunicazione', {})
+    stato_comunicazione = dict(cache.get('stato_comunicazione', {}))
     should_show = stato_comunicazione.get('run', '1') == '1'
     prev_run = cache.get('prev_run', False)
     cache['prev_run'] = should_show
@@ -132,7 +141,6 @@ def show_frame(cache, lmain):
     image_input = cv2.imread("/tmp/frame.jpg")
 
     if image_input is None:
-        lmain.after(10, lambda: show_frame(cache, lmain))
         return
 
     # ====================
@@ -479,8 +487,7 @@ def show_frame(cache, lmain):
     lmain.imgtk = imgtk
     lmain.configure(image=imgtk)
 
-    # Richiama ricorsivamente dopo 5ms
-    lmain.after(5, lambda: show_frame(cache, lmain))
+    pass  # reschedule gestito dal wrapper show_frame
 
 
 def cleanup(p):
